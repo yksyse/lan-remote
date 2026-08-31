@@ -1,16 +1,20 @@
-# Byte-compiled / optimized / DLL files
+# Python byte-code
 __pycache__/
 *.py[cod]
 *$py.class
-*.spec
 
-# Build and Packaging directories
+# PyInstaller builds & caches
 build/
 dist/
+*.spec
 *.egg-info/
 
-# Local configuration and logs
+# Local data, testing dumps and runtime configs
 config.json
+test*
+*.jpg
+*.jpeg
+*.png
 *.log
 
 # Environments and OS files
@@ -21,7 +25,7 @@ venv/
 .DS_Store
 Thumbs.db
 
-# IDE and Editor configs
+# IDEs
 .vscode/
 .idea/
 *.suo
