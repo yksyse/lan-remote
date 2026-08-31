@@ -133,16 +133,14 @@ async def websocket_stream(websocket: WebSocket):
 
     try:
         while True:
-            if not streamer.is_paused:
+            has_new = await streamer.wait_for_frame(last_sent_time)
+            if not streamer.is_paused and has_new:
                 frame_bytes = streamer.latest_frame_bytes
                 frame_time = streamer.latest_frame_time
 
                 if frame_bytes and frame_time > last_sent_time:
                     last_sent_time = frame_time
                     await websocket.send_bytes(frame_bytes)
-
-            fps = max(10, streamer.fps)
-            await asyncio.sleep(1.0 / (fps * 1.5))
     except (WebSocketDisconnect, asyncio.CancelledError, RuntimeError):
         pass
     except Exception:
