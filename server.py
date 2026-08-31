@@ -42,7 +42,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+import sys
+
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    BASE_DIR = sys._MEIPASS
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 ICONS_DIR = os.path.join(STATIC_DIR, "icons")
 
@@ -659,5 +665,27 @@ async def service_worker():
 
 
 if __name__ == "__main__":
-    port = cfg_mgr.config.get("server", {}).get("port", 8080)
-    uvicorn.run("server:app", host="0.0.0.0", port=port, log_level="info")
+    import argparse
+    import socket
+
+    parser = argparse.ArgumentParser(description="LAN Remote Control Server")
+    parser.add_argument("--port", type=int, default=None, help="Port to bind")
+    args, _ = parser.parse_known_args()
+
+    port = args.port or cfg_mgr.config.get("server", {}).get("port", 8080)
+
+    def is_port_available(p: int) -> bool:
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                return s.connect_ex(("127.0.0.1", p)) != 0
+        except Exception:
+            return True
+
+    if not is_port_available(port):
+        for candidate in [8090, 8085, 8095, 9000, 8888]:
+            if is_port_available(candidate):
+                logger.warning(f"Port {port} is occupied! Automatically falling back to available port {candidate}.")
+                port = candidate
+                break
+
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")

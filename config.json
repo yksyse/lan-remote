@@ -20,7 +20,7 @@
     "invert_scroll": false,
     "long_press_ms": 450,
     "haptic_feedback": true,
-    "cursor_mode": "physical"
+    "cursor_mode": "virtual"
   },
   "deck": {
     "grid_columns": 4,

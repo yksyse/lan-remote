@@ -1,11 +1,16 @@
 import json
 import logging
 import os
+import sys
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("ConfigManager")
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    BASE_DIR = os.path.dirname(sys.executable)
+else:
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 CONFIG_PATH = os.path.join(BASE_DIR, "config.json")
 
 DEFAULT_CONFIG: Dict[str, Any] = {
