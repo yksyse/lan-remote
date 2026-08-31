@@ -1,9 +1,9 @@
-// Global App Controller with Recent Actions Log & i18n
+// Global App Controller with Smart Toaster & i18n
 const App = {
   activeTab: 'stream',
   config: {},
   status: {},
-  recentActions: [],
+  lastToast: { message: '', element: null, count: 1, timer: null },
 
   init() {
     if (window.I18n) {
@@ -14,7 +14,6 @@ const App = {
     this.setupGlobalSearch();
     this.registerServiceWorker();
     this.loadConfig();
-    this.renderRecentActions();
 
     setInterval(() => {
       if (document.visibilityState === 'visible') {
@@ -54,56 +53,6 @@ const App = {
     } else if (tabId === 'settings' && window.SettingsManager) {
       window.SettingsManager.renderNetworkInfo();
     }
-  },
-
-  logAction(iconName, title) {
-    const now = new Date();
-    const timeStr = now.toTimeString().split(' ')[0];
-    this.recentActions.unshift({
-      id: Date.now(),
-      icon: iconName || 'activity',
-      title: title || 'Action',
-      time: timeStr
-    });
-
-    if (this.recentActions.length > 10) {
-      this.recentActions.pop();
-    }
-    this.renderRecentActions();
-  },
-
-  renderRecentActions() {
-    const containers = [
-      document.getElementById('recentActionsListPC'),
-      document.getElementById('recentActionsListMobile')
-    ];
-
-    const isMobile = window.innerWidth <= 768;
-    const maxItems = isMobile ? 3 : 5;
-    const items = this.recentActions.slice(0, maxItems);
-
-    containers.forEach(container => {
-      if (!container) return;
-      container.innerHTML = '';
-
-      if (items.length === 0) {
-        container.innerHTML = `<div style="font-size:0.75rem;color:var(--text-dim);padding:8px 0;">${I18n.t('no_recent_actions')}</div>`;
-        return;
-      }
-
-      items.forEach(item => {
-        const el = document.createElement('div');
-        el.className = 'recent-action-item';
-        el.innerHTML = `
-          <div class="recent-action-left">
-            <img src="/icons/${item.icon}.svg" style="width:14px;height:14px;" onerror="this.src='/icons/activity.svg'" alt="">
-            <span>${item.title}</span>
-          </div>
-          <span class="recent-action-time">${item.time}</span>
-        `;
-        container.appendChild(el);
-      });
-    });
   },
 
   setupGlobalSearch() {
@@ -178,17 +127,59 @@ const App = {
     const container = document.getElementById('toastContainer');
     if (!container) return;
 
+    const isMobile = window.innerWidth <= 768;
+    const maxToasts = isMobile ? 3 : 5;
+
+    // 1. If repeating the exact same action rapidly, group it (e.g. Volume Down x4)
+    if (this.lastToast.message === message && this.lastToast.element && document.body.contains(this.lastToast.element)) {
+      this.lastToast.count++;
+      clearTimeout(this.lastToast.timer);
+      this.lastToast.element.textContent = `${message} (x${this.lastToast.count})`;
+      this.lastToast.element.style.animation = 'none';
+      void this.lastToast.element.offsetWidth; // trigger reflow
+      this.lastToast.element.style.animation = 'toastPulse 0.15s ease';
+
+      this.lastToast.timer = setTimeout(() => {
+        this.dismissToast(this.lastToast.element);
+      }, 2000);
+      return;
+    }
+
+    // 2. Limit maximum visible toasts (max 5 on PC, max 3 on mobile)
+    while (container.children.length >= maxToasts) {
+      this.dismissToast(container.firstElementChild, true);
+    }
+
+    // 3. Create fresh toast
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
     container.appendChild(toast);
 
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(-10px)';
-      toast.style.transition = 'all 0.2s ease';
-      setTimeout(() => toast.remove(), 200);
+    const timer = setTimeout(() => {
+      this.dismissToast(toast);
     }, 2500);
+
+    this.lastToast = {
+      message: message,
+      element: toast,
+      count: 1,
+      timer: timer
+    };
+  },
+
+  dismissToast(toastEl, immediate = false) {
+    if (!toastEl || !toastEl.parentNode) return;
+    if (immediate) {
+      toastEl.remove();
+      return;
+    }
+    toastEl.style.opacity = '0';
+    toastEl.style.transform = 'translateX(20px)';
+    toastEl.style.transition = 'all 0.2s ease';
+    setTimeout(() => {
+      if (toastEl.parentNode) toastEl.remove();
+    }, 200);
   },
 
   registerServiceWorker() {

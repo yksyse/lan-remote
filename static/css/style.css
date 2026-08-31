@@ -1290,9 +1290,10 @@ input:checked + .slider:before {
   right: 20px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   z-index: 2000;
   pointer-events: none;
+  max-width: 320px;
 }
 
 .toast {
@@ -1300,22 +1301,29 @@ input:checked + .slider:before {
   backdrop-filter: blur(12px);
   border: 1px solid var(--border);
   color: var(--text-main);
-  padding: 10px 16px;
+  padding: 8px 14px;
   border-radius: var(--radius-md);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 500;
   box-shadow: var(--shadow-md);
   display: flex;
   align-items: center;
   gap: 8px;
-  animation: slideInToast 0.25s ease;
+  animation: slideInToast 0.2s ease;
   pointer-events: auto;
 }
 
 .toast.success { border-left: 3px solid var(--accent-green); }
 .toast.error { border-left: 3px solid var(--accent-red); }
 
+@keyframes toastPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
 @keyframes slideInToast {
-  from { opacity: 0; transform: translateX(30px); }
+  from { opacity: 0; transform: translateX(20px); }
   to { opacity: 1; transform: translateX(0); }
 }
 

@@ -7,8 +7,8 @@
     ]
   },
   "stream": {
-    "fps": 60,
-    "quality": 85,
+    "fps": 30,
+    "quality": 45,
     "scale": 0.75,
     "monitor_index": 1
   },
@@ -19,7 +19,7 @@
     "invert_scroll": false,
     "long_press_ms": 450,
     "haptic_feedback": true,
-    "cursor_mode": "virtual"
+    "cursor_mode": "physical"
   },
   "deck": {
     "grid_columns": 4,

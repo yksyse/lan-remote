@@ -152,46 +152,22 @@
         <button id="mobileDragBtn" class="mouse-action-btn" data-i18n="btn_drag">Зажать (Drag)</button>
         <button id="mobileRmbBtn" class="mouse-action-btn" data-i18n="btn_rmb">ПКМ (Правая)</button>
       </div>
-
-      <!-- Mobile Recent Actions (Max 3) -->
-      <div style="margin-top:10px;" class="show-on-mobile-only">
-        <div style="font-size:0.8rem;font-weight:700;margin-bottom:6px;color:var(--text-muted);" data-i18n="recent_actions_title">Последние действия</div>
-        <div id="recentActionsListMobile" class="recent-actions-list"></div>
-      </div>
     </section>
 
     <!-- TAB 2: TOUCH DECK (MACRO GRID: MAX 4 COLUMNS ON PC) -->
     <section id="tab-deck" class="tab-pane">
-      <div class="deck-layout-wrapper">
-        
-        <!-- Left / Main Area: Grid of Max 4 Cards per Row -->
-        <div class="deck-main-area">
-          <div class="deck-header">
-            <div class="deck-title" data-i18n="deck_title">Touch Deck Actions</div>
-            <div class="deck-actions">
-              <button id="addDeckCardBtn" class="btn-primary">
-                <img src="/icons/plus.svg" style="width:16px;height:16px;" alt="Add">
-                <span data-i18n="add_action_btn">Add Action</span>
-              </button>
-            </div>
-          </div>
-          
-          <div id="deckGrid" class="deck-grid">
-            <!-- Rendered dynamically (Strictly max 4 per row on PC) -->
-          </div>
+      <div class="deck-header">
+        <div class="deck-title" data-i18n="deck_title">Touch Deck Actions</div>
+        <div class="deck-actions">
+          <button id="addDeckCardBtn" class="btn-primary">
+            <img src="/icons/plus.svg" style="width:16px;height:16px;" alt="Add">
+            <span data-i18n="add_action_btn">Add Action</span>
+          </button>
         </div>
-
-        <!-- Right Side: Recent Actions Sidebar (Max 5 on PC) -->
-        <aside class="recent-actions-sidebar">
-          <div class="recent-actions-title">
-            <img src="/icons/activity.svg" style="width:16px;height:16px;color:var(--accent-blue);" alt="">
-            <span data-i18n="recent_actions_title">Recent Actions</span>
-          </div>
-          <div id="recentActionsListPC" class="recent-actions-list">
-            <!-- Dynamic recent actions log -->
-          </div>
-        </aside>
-
+      </div>
+      
+      <div id="deckGrid" class="deck-grid">
+        <!-- Rendered dynamically (Strictly max 4 per row on PC) -->
       </div>
     </section>
 
