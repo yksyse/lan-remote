@@ -30,7 +30,7 @@ class CURSORINFO(ctypes.Structure):
 
 
 class ScreenStreamer:
-    """High-performance 60 FPS Windows screen capture engine with SIMD accelerated JPEG encoding."""
+    """High-performance 60 FPS Windows screen capture engine with dynamic desktop attachment."""
 
     def __init__(self):
         self.fps: int = 60
@@ -56,6 +56,15 @@ class ScreenStreamer:
 
         self.active_sockets = set()
         self._sct = None
+
+    def _attach_input_desktop(self):
+        try:
+            hdesk = user32.OpenInputDesktop(0, False, 0x01FF)
+            if hdesk:
+                user32.SetThreadDesktop(hdesk)
+                user32.CloseDesktop(hdesk)
+        except Exception:
+            pass
 
     def start(self):
         if self.running:
@@ -103,6 +112,7 @@ class ScreenStreamer:
             self.monitor_index = max(1, monitor_index)
 
     def get_monitors(self) -> List[Dict[str, Any]]:
+        self._attach_input_desktop()
         monitors_info = []
         try:
             with mss.mss() as sct:
@@ -138,6 +148,7 @@ class ScreenStreamer:
         return 0, 0, False
 
     def _capture_loop(self):
+        self._attach_input_desktop()
         frame_times = collections.deque(maxlen=60)
         cv_encode_params = [
             cv2.IMWRITE_JPEG_QUALITY,
@@ -148,10 +159,18 @@ class ScreenStreamer:
 
         with mss.mss() as sct:
             self._sct = sct
+            desktop_attach_counter = 0
+
             while self.running:
                 if self.is_paused:
                     time.sleep(0.15)
                     continue
+
+                # Periodically re-sync thread with active input desktop
+                desktop_attach_counter += 1
+                if desktop_attach_counter >= 120:
+                    self._attach_input_desktop()
+                    desktop_attach_counter = 0
 
                 t0 = time.perf_counter()
 
@@ -168,7 +187,6 @@ class ScreenStreamer:
                     self.original_height = monitor["height"]
 
                     sct_img = sct.grab(monitor)
-                    # Use np.array to ensure writable buffer
                     img_np = np.array(sct_img, dtype=np.uint8)
 
                     t_cap = time.perf_counter()
@@ -243,6 +261,7 @@ class ScreenStreamer:
 
                 except Exception as e:
                     logger.error(f"Frame capture error: {e}")
+                    self._attach_input_desktop()
                     time.sleep(0.01)
 
                 target_dt = 1.0 / self.fps
