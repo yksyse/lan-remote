@@ -16,6 +16,7 @@ const SettingsManager = {
       sel.addEventListener('change', (e) => {
         I18n.setLanguage(e.target.value);
         if (window.DeckManager) window.DeckManager.renderDeck();
+        if (window.StreamManager) window.StreamManager.renderMonitorPills();
         this.renderNetworkInfo();
         App.showToast(I18n.t('settings_saved_toast'), 'success');
       });
@@ -87,6 +88,7 @@ const SettingsManager = {
 
     if (cfg.input) {
       this.setVal('settingInputMode', cfg.input.mode);
+      this.setVal('settingCursorMode', cfg.input.cursor_mode || 'physical');
       this.setVal('settingInputSensitivity', cfg.input.sensitivity);
       this.setCheck('settingInputInvertScroll', cfg.input.invert_scroll);
       this.setVal('settingInputLongPress', cfg.input.long_press_ms);
@@ -94,9 +96,11 @@ const SettingsManager = {
 
       if (window.StreamManager) {
         window.StreamManager.inputMode = cfg.input.mode || 'trackpad';
+        window.StreamManager.cursorMode = cfg.input.cursor_mode || 'physical';
         window.StreamManager.sensitivity = cfg.input.sensitivity || 1.3;
         window.StreamManager.invertScroll = !!cfg.input.invert_scroll;
         window.StreamManager.hapticFeedback = cfg.input.haptic_feedback !== false;
+        window.StreamManager.updateCursorModeUI();
       }
     }
 
@@ -124,6 +128,14 @@ const SettingsManager = {
   },
 
   async saveSettingsFromUI() {
+    const cursorModeVal = document.getElementById('settingCursorMode')?.value || 'physical';
+    
+    if (window.StreamManager) {
+      window.StreamManager.cursorMode = cursorModeVal;
+      localStorage.setItem('lan_remote_cursor_mode', cursorModeVal);
+      window.StreamManager.updateCursorModeUI();
+    }
+
     const payload = {
       stream: {
         fps: parseInt(document.getElementById('settingStreamFps')?.value || 30, 10),
@@ -133,6 +145,7 @@ const SettingsManager = {
       },
       input: {
         mode: document.getElementById('settingInputMode')?.value || 'trackpad',
+        cursor_mode: cursorModeVal,
         sensitivity: parseFloat(document.getElementById('settingInputSensitivity')?.value || 1.3),
         invert_scroll: !!document.getElementById('settingInputInvertScroll')?.checked,
         long_press_ms: parseInt(document.getElementById('settingInputLongPress')?.value || 450, 10),
@@ -226,7 +239,6 @@ const SettingsManager = {
     const primaryIp = App.status.local_ips[0] || '127.0.0.1';
     const primaryUrl = `http://${primaryIp}:${port}`;
 
-    // 1. QR Code Card for Mobile Camera Scanning
     if (typeof window.renderQRCodeSVG === 'function') {
       const qrCard = document.createElement('div');
       qrCard.className = 'qr-connection-card';
@@ -247,7 +259,6 @@ const SettingsManager = {
       container.appendChild(qrCard);
     }
 
-    // 2. All IP addresses list
     const ipListTitle = document.createElement('div');
     ipListTitle.style.marginTop = '12px';
     ipListTitle.style.marginBottom = '6px';

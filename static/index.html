@@ -42,19 +42,19 @@
     <!-- Main Navigation Tabs -->
     <nav class="nav-tabs">
       <button class="tab-btn active" data-tab="stream">
-        <img src="/icons/desktop.svg" style="width:16px;height:16px;" alt="Screen">
+        <img src="/icons/desktop.svg" alt="Screen">
         <span data-i18n="tab_screen">Screen</span>
       </button>
       <button class="tab-btn" data-tab="deck">
-        <img src="/icons/grid.svg" style="width:16px;height:16px;" alt="Deck">
+        <img src="/icons/grid.svg" alt="Deck">
         <span data-i18n="tab_deck">Deck</span>
       </button>
       <button class="tab-btn" data-tab="system">
-        <img src="/icons/activity.svg" style="width:16px;height:16px;" alt="System">
+        <img src="/icons/activity.svg" alt="System">
         <span data-i18n="tab_system">System</span>
       </button>
       <button class="tab-btn" data-tab="settings">
-        <img src="/icons/settings.svg" style="width:16px;height:16px;" alt="Settings">
+        <img src="/icons/settings.svg" alt="Settings">
         <span data-i18n="tab_settings">Settings</span>
       </button>
     </nav>
@@ -66,6 +66,14 @@
     <!-- TAB 1: SCREEN STREAM -->
     <section id="tab-stream" class="tab-pane active">
       <div class="stream-container">
+        
+        <!-- Quick Display/Monitor Selector in Top Corner of Screen -->
+        <div class="stream-top-bar">
+          <div id="quickMonitorSelector" class="monitor-pill-group">
+            <!-- Dynamically populated [D1] [D2] pills -->
+          </div>
+        </div>
+
         <canvas id="streamCanvas" width="1920" height="1080"></canvas>
         
         <!-- Virtual Trackpad Touch Overlay (Transparent touch surface) -->
@@ -79,7 +87,13 @@
         <!-- Floating Quick Toolbar -->
         <div class="stream-toolbar">
           <button id="toggleInputModeBtn" class="tool-btn active" data-i18n-title="input_mode_btn" title="Toggle Trackpad / Direct Touch">
-            <img src="/icons/mouse.svg" alt="Mouse Mode">
+            <img src="/icons/mouse.svg" alt="Touch Mode">
+          </button>
+          <button id="toggleCursorModeBtn" class="tool-btn" data-i18n-title="cursor_mode_btn" title="Toggle Mouse Mode (Physical / Virtual)">
+            <img src="/icons/sliders.svg" alt="Cursor Mode">
+          </button>
+          <button id="toggleOrientationBtn" class="tool-btn" data-i18n-title="orientation_btn" title="Orientation (Rotate 90°)">
+            <img src="/icons/refresh.svg" alt="Rotate">
           </button>
           <button id="toggleKeyboardBtn" class="tool-btn" data-i18n-title="keyboard_btn" title="Virtual Keyboard">
             <img src="/icons/keyboard.svg" alt="Keyboard">
@@ -339,6 +353,19 @@
           <div class="section-header">
             <img src="/icons/mouse.svg" style="width:20px;height:20px;color:var(--accent-green);" alt="Input">
             <h3 data-i18n="sec_input">Input & Touch Gestures</h3>
+          </div>
+
+          <div class="setting-item" data-tags="cursor mode mouse virtual physical мышь курсор">
+            <div class="setting-meta">
+              <div class="setting-title" data-i18n="setting_cursor_mode_title">Mouse Cursor Mode</div>
+              <div class="setting-desc" data-i18n="setting_cursor_mode_desc">Physical (moves host OS mouse) or Virtual (canvas pointer for testing)</div>
+            </div>
+            <div class="setting-control">
+              <select id="settingCursorMode" class="setting-select">
+                <option value="physical" data-i18n="cursor_physical">Physical OS Cursor</option>
+                <option value="virtual" data-i18n="cursor_virtual">Virtual Cursor (Test Mode)</option>
+              </select>
+            </div>
           </div>
 
           <div class="setting-item" data-tags="mouse touch mode trackpad direct ввод тачпад">

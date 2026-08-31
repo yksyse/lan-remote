@@ -10,10 +10,10 @@
     "fps": 60,
     "quality": 85,
     "scale": 0.75,
-    "monitor_index": 2
+    "monitor_index": 1
   },
   "input": {
-    "mode": "direct",
+    "mode": "trackpad",
     "sensitivity": 1.3,
     "scroll_speed": 1.0,
     "invert_scroll": false,

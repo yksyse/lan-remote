@@ -1,4 +1,4 @@
-// Ultra-Low Latency Canvas Streamer & Enhanced Touch/Gesture Engine
+// Ultra-Low Latency Canvas Streamer, Virtual Pointer & Mobile Orientation Engine
 const StreamManager = {
   ws: null,
   inputWs: null,
@@ -10,12 +10,21 @@ const StreamManager = {
   rttMs: 0,
   lastPingTime: 0,
   pingInterval: null,
+  currentMonitor: 1,
+  availableMonitors: [],
 
-  // Input configuration
+  // Input & Cursor configuration
   inputMode: 'trackpad', // 'trackpad' or 'direct'
+  cursorMode: 'physical', // 'physical' (Windows host cursor) or 'virtual' (canvas pointer)
+  orientationMode: 'normal', // 'normal' or 'rotated_90'
   sensitivity: 1.3,
   invertScroll: false,
   hapticFeedback: true,
+
+  // Virtual cursor state on canvas
+  virtualX: 0.5,
+  virtualY: 0.5,
+  clickRipple: null, // {x, y, radius, opacity}
 
   // Touch & Gesture tracking
   lastTouchX: 0,
@@ -33,10 +42,16 @@ const StreamManager = {
     if (!this.canvas) return;
     this.ctx = this.canvas.getContext('2d', { alpha: false });
 
+    // Load saved cursor mode
+    this.cursorMode = localStorage.getItem('lan_remote_cursor_mode') || 'physical';
+
     this.connectStreamWS();
     this.connectInputWS();
     this.setupEvents();
     this.setupKeyboardDrawer();
+    this.setupMonitorBar();
+    this.setupOrientationControls();
+    this.updateCursorModeUI();
   },
 
   onTabVisible() {
@@ -46,6 +61,7 @@ const StreamManager = {
     if (!this.inputWs || this.inputWs.readyState !== WebSocket.OPEN) {
       this.connectInputWS();
     }
+    this.fetchMonitors();
   },
 
   connectStreamWS() {
@@ -76,7 +92,7 @@ const StreamManager = {
         return;
       }
 
-      // Binary Blob -> ImageBitmap for direct GPU texture upload
+      // Binary Blob -> ImageBitmap for GPU texture upload
       try {
         const bmp = await createImageBitmap(event.data);
         if (this.canvas.width !== bmp.width || this.canvas.height !== bmp.height) {
@@ -85,6 +101,11 @@ const StreamManager = {
         }
         this.ctx.drawImage(bmp, 0, 0);
         bmp.close();
+
+        // Draw Virtual Cursor if active
+        if (this.cursorMode === 'virtual') {
+          this.drawVirtualCursor();
+        }
       } catch (err) {}
     };
 
@@ -116,6 +137,7 @@ const StreamManager = {
 
   sendInput(data) {
     if (this.inputWs && this.inputWs.readyState === WebSocket.OPEN) {
+      data.cursor_mode = this.cursorMode;
       this.inputWs.send(JSON.stringify(data));
     }
   },
@@ -142,6 +164,58 @@ const StreamManager = {
     }
   },
 
+  drawVirtualCursor() {
+    const ctx = this.ctx;
+    const cx = this.virtualX * this.canvas.width;
+    const cy = this.virtualY * this.canvas.height;
+
+    // Pointer shadow & body
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = '#3b82f6';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + 16, cy + 12);
+    ctx.lineTo(cx + 6, cy + 14);
+    ctx.lineTo(cx + 12, cy + 24);
+    ctx.lineTo(cx + 8, cy + 26);
+    ctx.lineTo(cx + 2, cy + 16);
+    ctx.lineTo(cx - 6, cy + 20);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Click Ripple Animation
+    if (this.clickRipple) {
+      ctx.beginPath();
+      ctx.arc(this.clickRipple.x, this.clickRipple.y, this.clickRipple.radius, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(59, 130, 246, ${this.clickRipple.opacity})`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      this.clickRipple.radius += 2.5;
+      this.clickRipple.opacity -= 0.08;
+      if (this.clickRipple.opacity <= 0) {
+        this.clickRipple = null;
+      }
+    }
+
+    ctx.restore();
+  },
+
+  triggerRipple(normX, normY) {
+    this.clickRipple = {
+      x: normX * this.canvas.width,
+      y: normY * this.canvas.height,
+      radius: 4,
+      opacity: 1.0
+    };
+  },
+
   showTrackpadHint() {
     const hint = document.getElementById('trackpadHint');
     if (!hint) return;
@@ -158,16 +232,119 @@ const StreamManager = {
     if (hint) hint.classList.remove('show');
   },
 
+  // ----------------------------------------------------
+  // Quick Monitor Switcher
+  // ----------------------------------------------------
+  async fetchMonitors() {
+    try {
+      const res = await fetch('/api/monitors');
+      this.availableMonitors = await res.json();
+      this.renderMonitorPills();
+    } catch (e) {}
+  },
+
+  setupMonitorBar() {
+    this.fetchMonitors();
+  },
+
+  renderMonitorPills() {
+    const bar = document.getElementById('quickMonitorSelector');
+    if (!bar) return;
+
+    bar.innerHTML = `<span style="font-size:0.7rem;color:var(--text-dim);margin:0 4px;font-weight:600;">${I18n.t('monitors_label')}:</span>`;
+
+    this.availableMonitors.forEach(mon => {
+      const btn = document.createElement('button');
+      btn.className = `mon-btn ${mon.id === this.currentMonitor ? 'active' : ''}`;
+      btn.textContent = `D${mon.id}`;
+      btn.title = mon.name;
+      btn.addEventListener('click', () => this.switchMonitor(mon.id));
+      bar.appendChild(btn);
+    });
+  },
+
+  async switchMonitor(monId) {
+    this.currentMonitor = monId;
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: 'set_monitor', monitor_index: monId }));
+    }
+    this.renderMonitorPills();
+    App.showToast(`${I18n.t('monitors_label')} ${monId}`, 'info');
+  },
+
+  // ----------------------------------------------------
+  // Mobile Orientation (Landscape 90° rotate / normal)
+  // ----------------------------------------------------
+  setupOrientationControls() {
+    const orientBtn = document.getElementById('toggleOrientationBtn');
+    if (!orientBtn) return;
+
+    orientBtn.addEventListener('click', () => {
+      this.orientationMode = this.orientationMode === 'normal' ? 'rotated_90' : 'normal';
+      const container = document.querySelector('.stream-container');
+      
+      if (this.orientationMode === 'rotated_90') {
+        container.classList.add('rotated-90');
+        orientBtn.classList.add('active');
+        App.showToast(I18n.t('orient_landscape'), 'info');
+      } else {
+        container.classList.remove('rotated-90');
+        orientBtn.classList.remove('active');
+        App.showToast(I18n.t('orient_normal'), 'info');
+      }
+    });
+  },
+
+  // ----------------------------------------------------
+  // Virtual Cursor Mode Toggle
+  // ----------------------------------------------------
+  toggleCursorMode() {
+    this.cursorMode = this.cursorMode === 'physical' ? 'virtual' : 'physical';
+    localStorage.setItem('lan_remote_cursor_mode', this.cursorMode);
+    this.updateCursorModeUI();
+    const modeName = this.cursorMode === 'physical' ? I18n.t('cursor_physical') : I18n.t('cursor_virtual');
+    App.showToast(`${I18n.t('cursor_mode_toast')}${modeName}`, 'info');
+  },
+
+  updateCursorModeUI() {
+    const btn = document.getElementById('toggleCursorModeBtn');
+    if (btn) {
+      btn.classList.toggle('virtual-active', this.cursorMode === 'virtual');
+      btn.title = `${I18n.t('cursor_mode_btn')}: ${this.cursorMode === 'physical' ? I18n.t('cursor_physical') : I18n.t('cursor_virtual')}`;
+    }
+    const select = document.getElementById('settingCursorMode');
+    if (select) select.value = this.cursorMode;
+  },
+
+  // ----------------------------------------------------
+  // Coordinate and Touch Mapping
+  // ----------------------------------------------------
+  getTouchCoordinates(clientX, clientY) {
+    const rect = this.canvas.getBoundingClientRect();
+    let normX = 0, normY = 0;
+
+    if (this.orientationMode === 'rotated_90') {
+      // 90 degree rotated transform
+      normX = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+      normY = Math.max(0, Math.min(1, 1.0 - ((clientX - rect.left) / rect.width)));
+    } else {
+      normX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      normY = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+    }
+    return { normX, normY };
+  },
+
   setupEvents() {
     const canvas = this.canvas;
     const trackpadOverlay = document.getElementById('trackpadOverlay');
 
     // 1. Mouse Events on Canvas (Desktop client)
     canvas.addEventListener('mousemove', (e) => {
+      const { normX, normY } = this.getTouchCoordinates(e.clientX, e.clientY);
+      this.virtualX = normX;
+      this.virtualY = normY;
+
       if (this.inputMode === 'direct') {
-        const rect = canvas.getBoundingClientRect();
-        const normX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-        const normY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
         this.sendInput({ type: 'move_abs', x: normX, y: normY });
       }
     });
@@ -175,6 +352,9 @@ const StreamManager = {
     canvas.addEventListener('mousedown', (e) => {
       e.preventDefault();
       const btn = e.button === 2 ? 'right' : (e.button === 1 ? 'middle' : 'left');
+      if (this.cursorMode === 'virtual') {
+        this.triggerRipple(this.virtualX, this.virtualY);
+      }
       this.sendInput({ type: 'down', button: btn });
     });
 
@@ -207,7 +387,11 @@ const StreamManager = {
         this.touchStartTime = now;
         this.isDragging = false;
 
-        // Double-tap & hold detection for click-and-drag
+        const { normX, normY } = this.getTouchCoordinates(touch.clientX, touch.clientY);
+        this.virtualX = normX;
+        this.virtualY = normY;
+
+        // Double-tap & hold for click & drag
         if (now - this.lastTapTime < 280) {
           this.isTapAndHold = true;
           this.vibrate(20);
@@ -222,6 +406,9 @@ const StreamManager = {
         this.longPressTimeout = setTimeout(() => {
           if (!this.isDragging && !this.isTapAndHold) {
             this.vibrate(30);
+            if (this.cursorMode === 'virtual') {
+              this.triggerRipple(this.virtualX, this.virtualY);
+            }
             this.sendInput({ type: 'click', button: 'right' });
             App.showToast(I18n.t('right_click_toast'), 'info');
           }
@@ -238,8 +425,14 @@ const StreamManager = {
 
       if (touches.length === 1) {
         const touch = touches[0];
-        const dx = (touch.clientX - this.lastTouchX) * this.sensitivity;
-        const dy = (touch.clientY - this.lastTouchY) * this.sensitivity;
+        let dx = (touch.clientX - this.lastTouchX) * this.sensitivity;
+        let dy = (touch.clientY - this.lastTouchY) * this.sensitivity;
+
+        if (this.orientationMode === 'rotated_90') {
+          const tempDx = dx;
+          dx = dy;
+          dy = -tempDx;
+        }
 
         if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
           this.isDragging = true;
@@ -247,11 +440,13 @@ const StreamManager = {
         }
 
         if (this.inputMode === 'trackpad') {
+          this.virtualX = Math.max(0, Math.min(1, this.virtualX + (dx / this.canvas.width)));
+          this.virtualY = Math.max(0, Math.min(1, this.virtualY + (dy / this.canvas.height)));
           this.sendInput({ type: 'move_rel', dx: Math.round(dx), dy: Math.round(dy) });
         } else {
-          const rect = canvas.getBoundingClientRect();
-          const normX = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
-          const normY = Math.max(0, Math.min(1, (touch.clientY - rect.top) / rect.height));
+          const { normX, normY } = this.getTouchCoordinates(touch.clientX, touch.clientY);
+          this.virtualX = normX;
+          this.virtualY = normY;
           this.sendInput({ type: 'move_abs', x: normX, y: normY });
         }
 
@@ -259,7 +454,6 @@ const StreamManager = {
         this.lastTouchY = touch.clientY;
 
       } else if (touches.length === 2) {
-        // Two-finger scroll
         const currentY = (touches[0].clientY + touches[1].clientY) / 2;
         const delta = currentY - this.twoFingerStartY;
 
@@ -280,8 +474,10 @@ const StreamManager = {
         this.isTapAndHold = false;
         this.sendInput({ type: 'up', button: 'left' });
       } else if (!this.isDragging && elapsed < 300) {
-        // Short tap -> Left click
         this.vibrate(15);
+        if (this.cursorMode === 'virtual') {
+          this.triggerRipple(this.virtualX, this.virtualY);
+        }
         this.sendInput({ type: 'click', button: 'left' });
       }
     });
@@ -304,6 +500,11 @@ const StreamManager = {
         const modeName = this.inputMode === 'trackpad' ? I18n.t('mode_trackpad') : I18n.t('mode_direct');
         App.showToast(`${I18n.t('input_mode_toast')}${modeName}`, 'info');
       });
+    }
+
+    const cursorBtn = document.getElementById('toggleCursorModeBtn');
+    if (cursorBtn) {
+      cursorBtn.addEventListener('click', () => this.toggleCursorMode());
     }
 
     const fsBtn = document.getElementById('toggleFullscreenBtn');
@@ -329,7 +530,6 @@ const StreamManager = {
       kbdToggleBtn.classList.toggle('active');
     });
 
-    // Keys inside drawer
     drawer.querySelectorAll('.kbd-key').forEach(keyBtn => {
       keyBtn.addEventListener('click', () => {
         const key = keyBtn.dataset.key;
@@ -338,7 +538,6 @@ const StreamManager = {
       });
     });
 
-    // Text Input for mobile keyboard string entry
     const textInput = document.getElementById('kbdTextInput');
     const sendTextBtn = document.getElementById('kbdSendTextBtn');
 

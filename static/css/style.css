@@ -183,7 +183,7 @@ nav.nav-tabs {
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
 }
 
-.tab-btn svg {
+.tab-btn img, .tab-btn svg {
   width: 16px;
   height: 16px;
 }
@@ -267,6 +267,14 @@ main.app-content {
   box-shadow: var(--shadow-lg);
 }
 
+/* Mobile 90-degree landscape rotation */
+.stream-container.rotated-90 canvas#streamCanvas {
+  transform: rotate(90deg);
+  transform-origin: center center;
+  max-width: 80vh !important;
+  max-height: 95vw !important;
+}
+
 canvas#streamCanvas {
   max-width: 100%;
   max-height: 80vh;
@@ -274,6 +282,50 @@ canvas#streamCanvas {
   cursor: crosshair;
   touch-action: none;
   display: block;
+}
+
+/* Quick Monitor Switcher Top Bar */
+.stream-top-bar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 20;
+}
+
+.monitor-pill-group {
+  display: flex;
+  background: rgba(18, 22, 32, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 3px 5px;
+  gap: 4px;
+}
+
+.mon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mon-btn:hover {
+  color: var(--text-main);
+  background: var(--bg-tertiary);
+}
+
+.mon-btn.active {
+  background: var(--accent-blue);
+  color: #fff;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
 }
 
 /* Virtual Trackpad Mode Overlay (Fully Transparent) */
@@ -359,6 +411,11 @@ canvas#streamCanvas {
   background-color: var(--accent-blue);
   color: #fff;
   border-color: rgba(255, 255, 255, 0.2);
+}
+
+.tool-btn.virtual-active {
+  background-color: var(--accent-purple);
+  color: #fff;
 }
 
 .tool-btn img, .tool-btn svg {
@@ -681,7 +738,6 @@ canvas#streamCanvas {
   gap: 12px;
 }
 
-/* Custom Styled Range Sliders */
 input[type="range"].volume-slider {
   flex: 1;
   -webkit-appearance: none;
@@ -1128,13 +1184,16 @@ input:checked + .slider:before {
   to { opacity: 1; transform: translateX(0); }
 }
 
-/* Responsive adjustments */
+/* ===================================================================
+   Mobile First & Responsive Layout Overhaul
+   ================================----------------------------------- */
 @media (max-width: 768px) {
   header.app-header {
     padding: 8px 12px;
+    gap: 8px;
   }
   .brand span {
-    display: none;
+    font-size: 0.95rem;
   }
   .header-search {
     display: none;
@@ -1150,27 +1209,65 @@ input:checked + .slider:before {
     border-left: none;
     border-right: none;
     justify-content: space-around;
-    padding: 6px;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
     z-index: 100;
-    background-color: rgba(10, 12, 16, 0.95);
-    backdrop-filter: blur(12px);
+    background-color: rgba(10, 12, 16, 0.96);
+    backdrop-filter: blur(16px);
+  }
+  .tab-btn {
+    flex-direction: column;
+    padding: 4px 8px;
+    font-size: 0.72rem;
+    gap: 2px;
   }
   main.app-content {
-    padding: 10px;
-    padding-bottom: 70px;
+    padding: 8px;
+    padding-bottom: calc(75px + env(safe-area-inset-bottom));
   }
   .stream-container {
-    min-height: 320px;
+    min-height: calc(100dvh - 145px);
+    border-radius: var(--radius-md);
   }
   .stream-toolbar {
-    bottom: 8px;
+    bottom: 10px;
+    padding: 4px 8px;
+    gap: 6px;
+  }
+  .tool-btn {
+    width: 34px;
+    height: 34px;
   }
   .keyboard-drawer {
-    bottom: 60px;
+    bottom: 56px;
     width: 98%;
+    padding: 8px;
+  }
+  .kbd-key {
+    padding: 6px 8px;
+    font-size: 0.75rem;
+  }
+  .deck-grid {
+    grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
+    gap: 8px;
+  }
+  .deck-card {
+    padding: 10px 6px;
+    border-radius: var(--radius-md);
+  }
+  .deck-card-icon {
+    width: 32px;
+    height: 32px;
+  }
+  .deck-card-title {
+    font-size: 0.75rem;
   }
   .qr-connection-card {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
+  }
+  .stream-top-bar {
+    top: 8px;
+    left: 8px;
   }
 }

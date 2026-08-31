@@ -30,9 +30,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("LAN-Remote")
 
-app = FastAPI(title="LAN Remote Control", version="1.0.0")
+app = FastAPI(title="LAN Remote Control", version="1.1.0")
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -45,11 +44,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 ICONS_DIR = os.path.join(STATIC_DIR, "icons")
 
+# Virtual cursor state (when cursor_mode is 'virtual')
+virtual_cursor = {"x": 0.5, "y": 0.5, "visible": True}
 
-# Startup event
+
 @app.on_event("startup")
 async def startup_event():
-    # Apply initial stream settings from config
     st_cfg = cfg_mgr.config.get("stream", {})
     streamer.update_settings(
         fps=st_cfg.get("fps", 30),
@@ -107,6 +107,12 @@ async def websocket_stream(websocket: WebSocket):
                             scale=msg.get("scale"),
                             monitor_index=msg.get("monitor_index"),
                         )
+                    elif mtype == "set_monitor":
+                        mon_idx = int(msg.get("monitor_index", 1))
+                        streamer.update_settings(monitor_index=mon_idx)
+                        cfg_mgr.update_section(
+                            "stream", {"monitor_index": mon_idx}
+                        )
                 except Exception as e:
                     logger.error(f"Error handling stream control packet: {e}")
         except (WebSocketDisconnect, asyncio.CancelledError):
@@ -116,7 +122,6 @@ async def websocket_stream(websocket: WebSocket):
 
     try:
         while True:
-            # Send latest frame if new
             frame_bytes = streamer.latest_frame_bytes
             frame_time = streamer.latest_frame_time
 
@@ -124,7 +129,6 @@ async def websocket_stream(websocket: WebSocket):
                 last_sent_time = frame_time
                 await websocket.send_bytes(frame_bytes)
 
-            # Sleep slightly to avoid pegging event loop
             fps = streamer.fps
             await asyncio.sleep(1.0 / (fps * 1.5))
     except (WebSocketDisconnect, asyncio.CancelledError):
@@ -148,40 +152,68 @@ async def websocket_input(websocket: WebSocket):
             try:
                 event = json.loads(data)
                 etype = event.get("type")
+                cursor_mode = (
+                    event.get("cursor_mode")
+                    or cfg_mgr.config.get("input", {}).get("cursor_mode")
+                    or "physical"
+                )
 
                 if etype == "move_abs":
-                    driver.move_absolute(
-                        float(event["x"]), float(event["y"])
-                    )
+                    nx = float(event["x"])
+                    ny = float(event["y"])
+                    virtual_cursor["x"] = nx
+                    virtual_cursor["y"] = ny
+                    if cursor_mode == "physical":
+                        driver.move_absolute(nx, ny)
+
                 elif etype == "move_rel":
-                    driver.move_relative(
-                        int(event.get("dx", 0)), int(event.get("dy", 0))
+                    dx = int(event.get("dx", 0))
+                    dy = int(event.get("dy", 0))
+                    # Update virtual coordinates
+                    w = streamer.original_width or 1920
+                    h = streamer.original_height or 1080
+                    virtual_cursor["x"] = max(
+                        0.0, min(1.0, virtual_cursor["x"] + dx / w)
                     )
+                    virtual_cursor["y"] = max(
+                        0.0, min(1.0, virtual_cursor["y"] + dy / h)
+                    )
+                    if cursor_mode == "physical":
+                        driver.move_relative(dx, dy)
+
                 elif etype == "down":
-                    driver.mouse_down(event.get("button", "left"))
+                    if cursor_mode == "physical":
+                        driver.mouse_down(event.get("button", "left"))
                 elif etype == "up":
-                    driver.mouse_up(event.get("button", "left"))
+                    if cursor_mode == "physical":
+                        driver.mouse_up(event.get("button", "left"))
                 elif etype == "click":
-                    driver.mouse_click(event.get("button", "left"))
+                    if cursor_mode == "physical":
+                        driver.mouse_click(event.get("button", "left"))
                 elif etype == "dblclick":
-                    driver.mouse_double_click(event.get("button", "left"))
+                    if cursor_mode == "physical":
+                        driver.mouse_double_click(event.get("button", "left"))
                 elif etype == "wheel":
-                    driver.mouse_wheel(
-                        int(event.get("dy", 0)), int(event.get("dx", 0))
-                    )
+                    if cursor_mode == "physical":
+                        driver.mouse_wheel(
+                            int(event.get("dy", 0)), int(event.get("dx", 0))
+                        )
                 elif etype == "key_down":
-                    driver.key_down(event.get("key", ""))
+                    if cursor_mode == "physical":
+                        driver.key_down(event.get("key", ""))
                 elif etype == "key_up":
-                    driver.key_up(event.get("key", ""))
+                    if cursor_mode == "physical":
+                        driver.key_up(event.get("key", ""))
                 elif etype == "key_press":
-                    driver.key_press(event.get("key", ""))
+                    if cursor_mode == "physical":
+                        driver.key_press(event.get("key", ""))
                 elif etype == "hotkey":
                     keys = event.get("keys", [])
-                    if isinstance(keys, list):
+                    if isinstance(keys, list) and cursor_mode == "physical":
                         driver.hotkey(keys)
                 elif etype == "type_text":
                     text = event.get("text", "")
-                    if text:
+                    if text and cursor_mode == "physical":
                         driver.type_text(text)
             except Exception as e:
                 logger.error(f"Input processing error: {e}")
@@ -200,6 +232,7 @@ async def get_status():
         "target_fps": streamer.fps,
         "quality": streamer.quality,
         "scale": streamer.scale,
+        "monitor_index": streamer.monitor_index,
         "width": streamer.frame_width,
         "height": streamer.frame_height,
         "last_frame_kb": round(streamer.last_frame_size / 1024, 1),
@@ -207,12 +240,21 @@ async def get_status():
         "encode_ms": round(streamer.encode_time_ms, 1),
         "active_viewers": len(streamer.active_sockets),
     }
+    metrics["monitors"] = streamer.get_monitors()
+    metrics["virtual_cursor"] = virtual_cursor
     return metrics
 
 
 @app.get("/api/monitors")
 async def get_monitors():
     return streamer.get_monitors()
+
+
+@app.post("/api/monitors/switch/{mon_id}")
+async def switch_monitor(mon_id: int):
+    streamer.update_settings(monitor_index=mon_id)
+    cfg_mgr.update_section("stream", {"monitor_index": mon_id})
+    return {"status": "ok", "current_monitor": mon_id}
 
 
 @app.get("/api/config")
@@ -228,7 +270,6 @@ class SectionUpdate(BaseModel):
 @app.post("/api/config")
 async def update_config(update: SectionUpdate):
     cfg_mgr.update_section(update.section, update.values)
-    # If stream settings updated, propagate immediately
     if update.section == "stream":
         streamer.update_settings(
             fps=update.values.get("fps"),
@@ -252,7 +293,7 @@ class DeckCardModel(BaseModel):
     title: str
     icon: str
     color: str = "#3b82f6"
-    type: str  # shortcut, command, system, media, power
+    type: str
     payload: Dict[str, Any]
 
 

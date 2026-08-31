@@ -16,9 +16,12 @@ const I18n = {
 
       // Screen Stream & Toolbar
       input_mode_btn: "Режим ввода (Тачпад / Прямой)",
+      cursor_mode_btn: "Переключить режим мыши (Реальная / Виртуальная)",
+      orientation_btn: "Поворот ориентации (Альбомная/Книжная)",
       keyboard_btn: "Экранная клавиатура",
       fullscreen_btn: "Во весь экран",
       ping_label: "Пинг",
+      monitors_label: "Экран",
       type_text_placeholder: "Введите текст для отправки на ПК...",
       send_btn: "Отправить",
       trackpad_hint: "Режим тачпада: 1 палец — перемещение и ЛКМ, 2 пальца — скролл, удержание — ПКМ",
@@ -27,6 +30,12 @@ const I18n = {
       input_mode_toast: "Режим ввода: ",
       mode_trackpad: "Виртуальный тачпад",
       mode_direct: "Прямой сенсор",
+      cursor_mode_toast: "Режим курсора: ",
+      cursor_physical: "Физический курсор ОС",
+      cursor_virtual: "Виртуальный курсор (Тест)",
+      orientation_toast: "Ориентация: ",
+      orient_normal: "Стандартная",
+      orient_landscape: "Альбомный поворот 90°",
 
       // Touch Deck
       deck_title: "Кнопки быстрого доступа (Touch Deck)",
@@ -99,6 +108,9 @@ const I18n = {
       setting_monitor_title: "Выбор монитора",
       setting_monitor_desc: "Какой физический экран захватывать",
 
+      setting_cursor_mode_title: "Режим курсора мыши",
+      setting_cursor_mode_desc: "Физический (управляет курсором Windows) или Виртуальный (изолирован для тестов)",
+
       setting_input_mode_title: "Режим ввода по умолчанию",
       setting_input_mode_desc: "Виртуальный тачпад (относительный) или прямое касание",
 
@@ -146,9 +158,12 @@ const I18n = {
 
       // Screen Stream & Toolbar
       input_mode_btn: "Input Mode (Trackpad / Direct)",
+      cursor_mode_btn: "Toggle Mouse Mode (Physical / Virtual)",
+      orientation_btn: "Screen Orientation (Landscape/Portrait)",
       keyboard_btn: "Virtual Keyboard",
       fullscreen_btn: "Fullscreen",
       ping_label: "Ping",
+      monitors_label: "Display",
       type_text_placeholder: "Type text to send to host PC...",
       send_btn: "Send",
       trackpad_hint: "Touchpad Mode: 1 finger move & tap, 2 fingers scroll, long press right-click",
@@ -157,6 +172,12 @@ const I18n = {
       input_mode_toast: "Input Mode: ",
       mode_trackpad: "Virtual Trackpad",
       mode_direct: "Direct Touch",
+      cursor_mode_toast: "Cursor Mode: ",
+      cursor_physical: "Physical OS Cursor",
+      cursor_virtual: "Virtual Cursor (Test)",
+      orientation_toast: "Orientation: ",
+      orient_normal: "Standard",
+      orient_landscape: "Landscape 90°",
 
       // Touch Deck
       deck_title: "Touch Deck Actions",
@@ -229,6 +250,9 @@ const I18n = {
       setting_monitor_title: "Capture Monitor",
       setting_monitor_desc: "Select which physical display to stream",
 
+      setting_cursor_mode_title: "Mouse Cursor Mode",
+      setting_cursor_mode_desc: "Physical (moves Windows host cursor) or Virtual (isolated for testing)",
+
       setting_input_mode_title: "Default Input Mode",
       setting_input_mode_desc: "Virtual Trackpad (relative cursor) or Direct Coordinate Touch",
 
@@ -276,9 +300,12 @@ const I18n = {
 
       // Screen Stream & Toolbar
       input_mode_btn: "Eingabemodus (Touchpad / Direkt)",
+      cursor_mode_btn: "Mausmodus umschalten (Physisch / Virtuell)",
+      orientation_btn: "Bildschirmausrichtung (Quer-/Hochformat)",
       keyboard_btn: "Virtuelle Tastatur",
       fullscreen_btn: "Vollbild",
       ping_label: "Ping",
+      monitors_label: "Bildschirm",
       type_text_placeholder: "Text eingeben und an PC senden...",
       send_btn: "Senden",
       trackpad_hint: "Touchpad-Modus: 1 Finger bewegen/tippen, 2 Finger scrollen, langes Drücken Rechtsklick",
@@ -287,6 +314,12 @@ const I18n = {
       input_mode_toast: "Eingabemodus: ",
       mode_trackpad: "Virtuelles Touchpad",
       mode_direct: "Direkte Berührung",
+      cursor_mode_toast: "Zeigermodus: ",
+      cursor_physical: "Physischer OS-Zeiger",
+      cursor_virtual: "Virtueller Zeiger (Test)",
+      orientation_toast: "Ausrichtung: ",
+      orient_normal: "Standard",
+      orient_landscape: "Querformat 90°",
 
       // Touch Deck
       deck_title: "Touch Deck Aktionen",
@@ -359,6 +392,9 @@ const I18n = {
       setting_monitor_title: "Monitor auswählen",
       setting_monitor_desc: "Welcher physische Bildschirm gestreamt werden soll",
 
+      setting_cursor_mode_title: "Mauszeigermodus",
+      setting_cursor_mode_desc: "Physisch (steuert Windows-Zeiger) oder Virtuell (isoliert für Tests)",
+
       setting_input_mode_title: "Standard-Eingabemodus",
       setting_input_mode_desc: "Virtuelles Touchpad oder direkte Berührung",
 
@@ -407,28 +443,24 @@ const I18n = {
   },
 
   applyTranslations() {
-    // 1. Elements with data-i18n
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const key = el.dataset.i18n;
       const text = this.t(key);
       if (text) el.textContent = text;
     });
 
-    // 2. Elements with data-i18n-placeholder
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
       const key = el.dataset.i18nPlaceholder;
       const text = this.t(key);
       if (text) el.placeholder = text;
     });
 
-    // 3. Elements with data-i18n-title
     document.querySelectorAll('[data-i18n-title]').forEach(el => {
       const key = el.dataset.i18nTitle;
       const text = this.t(key);
       if (text) el.title = text;
     });
 
-    // 4. Update language selectors
     document.querySelectorAll('.lang-selector-select').forEach(sel => {
       sel.value = this.currentLang;
     });
