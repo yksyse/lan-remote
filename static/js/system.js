@@ -1,4 +1,4 @@
-// Host System Monitor, Sparklines, Clipboard History & Media Controls
+// Host System Monitor, Sparklines, Clipboard History, Battery & Remote Toast Notifications
 const SystemManager = {
   isUpdatingVolume: false,
 
@@ -8,6 +8,7 @@ const SystemManager = {
     this.setupPowerControls();
     this.setupCommandRunner();
     this.setupClipboardSync();
+    this.setupNotificationSender();
   },
 
   update() {
@@ -28,7 +29,7 @@ const SystemManager = {
 
     ctx.clearRect(0, 0, w, h);
 
-    // Subtle background grid
+    // Grid center line
     ctx.strokeStyle = 'rgba(255,255,255,0.05)';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -36,7 +37,7 @@ const SystemManager = {
     ctx.lineTo(w, h * 0.5);
     ctx.stroke();
 
-    // Draw Smooth Area & Line
+    // Smooth Bezier line & fill
     ctx.beginPath();
     const step = w / (data.length - 1);
 
@@ -95,59 +96,72 @@ const SystemManager = {
       }
     }
 
-    // Active Foreground Window Badge
-    const actWinEl = document.getElementById('activeWindowBadge');
-    if (actWinEl && data.active_window) {
-      actWinEl.innerHTML = `
-        <span style="display:inline-flex;align-items:center;gap:6px;">
-          <img src="/icons/desktop.svg" style="width:14px;height:14px;opacity:0.8;" alt="">
-          <strong style="color:var(--accent-blue);">${data.active_window.process}:</strong>
-          <span style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${data.active_window.title}</span>
-        </span>
-      `;
+    // Battery Monitor
+    const batBadge = document.getElementById('sysBatteryBadge');
+    if (batBadge && data.battery) {
+      if (data.battery.has_battery) {
+        batBadge.style.display = 'inline-flex';
+        const plugIcon = data.battery.power_plugged ? '⚡' : '';
+        batBadge.innerHTML = `<img src="/icons/battery.svg" alt=""><span>${data.battery.percent}% ${plugIcon}</span>`;
+      } else {
+        batBadge.style.display = 'none';
+      }
     }
 
-    // Disks
-    const diskContainer = document.getElementById('disksContainer');
-    if (diskContainer && data.disks) {
-      diskContainer.innerHTML = '';
+    // Active Window
+    const actWinEl = document.getElementById('activeWindowBadge');
+    if (actWinEl && data.active_window) {
+      actWinEl.textContent = `${data.active_window.title} (${data.active_window.process})`;
+    }
+
+    // Host Info
+    const hostInfo = document.getElementById('sysHostInfo');
+    if (hostInfo) {
+      hostInfo.textContent = `${data.hostname} • ${data.os} • Up: ${data.uptime || '--'}`;
+    }
+
+    // Storage
+    const diskCont = document.getElementById('disksContainer');
+    if (diskCont && data.disks) {
+      diskCont.innerHTML = '';
       data.disks.forEach(d => {
-        const item = document.createElement('div');
-        item.style.marginBottom = '8px';
-        item.innerHTML = `
-          <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:3px;">
-            <span><strong>${d.mount}</strong> (${d.free_gb} GB ${I18n.t('free_space')})</span>
-            <span style="font-family:var(--font-mono);">${d.percent}%</span>
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.flexDirection = 'column';
+        row.style.gap = '2px';
+        row.innerHTML = `
+          <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);">
+            <span>${d.mount}</span>
+            <span>${d.used_gb} GB / ${d.total_gb} GB (${d.percent}%)</span>
           </div>
-          <div class="progress-bar-bg">
-            <div class="progress-bar-fill" style="width:${d.percent}%;background-color:${d.percent > 90 ? 'var(--accent-red)' : 'var(--accent-purple)'}"></div>
+          <div class="progress-bar-bg" style="height:4px;">
+            <div class="progress-bar-fill" style="width:${d.percent}%;background:${d.percent > 90 ? 'var(--accent-red)' : 'var(--accent-blue)'};"></div>
           </div>
         `;
-        diskContainer.appendChild(item);
+        diskCont.appendChild(row);
       });
     }
 
-    // Clipboard History (Last 5 items)
-    if (data.clipboard_history) {
-      this.renderClipboardHistory(data.clipboard_history);
-    }
-
-    // System Info
-    const hostEl = document.getElementById('sysHostInfo');
-    if (hostEl) {
-      hostEl.textContent = `${data.hostname || ''} | ${data.os || ''} | Uptime: ${data.uptime || ''}`;
-    }
-
-    // Volume Knob & Slider Sync
+    // Volume & Knob
     if (!this.isUpdatingVolume) {
-      const volSlider = document.getElementById('sysVolumeSlider');
-      const volLabel = document.getElementById('sysVolumeLabel');
+      const slider = document.getElementById('sysVolumeSlider');
+      const label = document.getElementById('sysVolumeLabel');
       const muteBtn = document.getElementById('sysMuteBtn');
 
-      if (volSlider && data.volume !== undefined) volSlider.value = data.volume;
-      if (volLabel && data.volume !== undefined) volLabel.textContent = `${data.volume}%`;
-      if (window.VolumeKnob && data.volume !== undefined) window.VolumeKnob.setValue(data.volume);
-      if (muteBtn && data.muted !== undefined) muteBtn.classList.toggle('active', data.muted);
+      if (slider && data.volume !== undefined) slider.value = data.volume;
+      if (label && data.volume !== undefined) label.textContent = `${data.volume}%`;
+      if (muteBtn && data.muted !== undefined) {
+        muteBtn.textContent = data.muted ? 'Unmute' : 'Mute';
+        muteBtn.classList.toggle('active', !!data.muted);
+      }
+      if (window.KnobManager && data.volume !== undefined) {
+        window.KnobManager.setValue(data.volume);
+      }
+    }
+
+    // Clipboard History List
+    if (data.clipboard_history) {
+      this.renderClipboardHistory(data.clipboard_history);
     }
   },
 
@@ -155,27 +169,25 @@ const SystemManager = {
     const list = document.getElementById('clipboardHistoryList');
     if (!list) return;
 
+    list.innerHTML = '';
     if (!history || history.length === 0) {
-      list.innerHTML = `<div style="font-size:0.75rem;color:var(--text-dim);padding:8px 0;">${I18n.t('no_clipboard_items') || 'No clipboard items yet'}</div>`;
+      list.innerHTML = `<div style="font-size:0.78rem;color:var(--text-dim);padding:4px 0;">No snippets recorded yet</div>`;
       return;
     }
 
-    list.innerHTML = '';
-    history.forEach((item, idx) => {
+    history.slice(0, 5).forEach((item, index) => {
       const row = document.createElement('div');
       row.className = 'clipboard-history-item';
       row.innerHTML = `
-        <div class="clipboard-item-text">
-          <span style="color:var(--accent-blue);font-weight:700;margin-right:6px;">#${idx + 1}</span>
-          <span style="user-select:text;">${item.preview}</span>
-          <span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-dim);margin-left:8px;">${item.time}</span>
-        </div>
-        <div style="display:flex;gap:6px;flex-shrink:0;">
-          <button class="btn-secondary" style="padding:4px 8px;font-size:0.72rem;" onclick="SystemManager.copySnippet('${encodeURIComponent(item.text)}')">
-            <img src="/icons/copy.svg" style="width:12px;height:12px;" alt=""> ${I18n.t('copy_btn') || 'Copy'}
+        <span style="font-weight:700;color:var(--accent-blue);font-family:var(--font-mono);font-size:0.75rem;">#${index + 1}</span>
+        <span class="clipboard-item-text" title="${item.text}">${item.preview}</span>
+        <span style="font-size:0.7rem;color:var(--text-dim);font-family:var(--font-mono);">${item.time}</span>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <button class="btn-secondary" style="padding:2px 8px;font-size:0.72rem;" title="Copy to local clipboard" onclick="navigator.clipboard.writeText('${item.text.replace(/'/g, "\\'")}'); App.showToast(I18n.t('copied_toast'), 'success');">
+            <img src="/icons/copy.svg" style="width:12px;height:12px;" alt="">
           </button>
-          <button class="btn-primary" style="padding:4px 8px;font-size:0.72rem;" onclick="SystemManager.pasteToHost('${encodeURIComponent(item.text)}')">
-            ⬆ ${I18n.t('paste_btn') || 'Host'}
+          <button class="btn-primary" style="padding:2px 8px;font-size:0.72rem;" title="Send to host clipboard" onclick="fetch('/api/system/clipboard', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text:'${item.text.replace(/'/g, "\\'")}'})}); App.showToast('Copied to Host', 'success');">
+            ⬆
           </button>
         </div>
       `;
@@ -183,30 +195,35 @@ const SystemManager = {
     });
   },
 
-  async copySnippet(encodedText) {
-    const text = decodeURIComponent(encodedText);
-    try {
-      await navigator.clipboard.writeText(text);
-      if (window.SoundEffects) window.SoundEffects.playSuccess();
-      App.showToast(I18n.t('copied_toast') || 'Copied to clipboard', 'success');
-    } catch (e) {
-      App.showToast('Error copying text', 'error');
-    }
-  },
+  setupNotificationSender() {
+    const titleInput = document.getElementById('notifyTitleInput');
+    const msgInput = document.getElementById('notifyMsgInput');
+    const sendBtn = document.getElementById('notifySendBtn');
 
-  async pasteToHost(encodedText) {
-    const text = decodeURIComponent(encodedText);
-    try {
-      await fetch('/api/system/clipboard', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text })
-      });
-      if (window.SoundEffects) window.SoundEffects.playSuccess();
-      App.showToast('Copied to host clipboard!', 'success');
-    } catch (e) {
-      App.showToast('Error sending to host', 'error');
-    }
+    if (!sendBtn || !msgInput) return;
+
+    sendBtn.addEventListener('click', async () => {
+      const title = titleInput?.value.trim() || 'LAN Remote';
+      const msg = msgInput.value.trim();
+      if (!msg) return;
+
+      if (window.SoundEffects) window.SoundEffects.playClick();
+      try {
+        const res = await fetch('/api/system/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: title, message: msg })
+        });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          msgInput.value = '';
+          if (window.SoundEffects) window.SoundEffects.playSuccess();
+          App.showToast('Уведомление отправлено на ПК!', 'success');
+        }
+      } catch (e) {
+        App.showToast('Error sending notification', 'error');
+      }
+    });
   },
 
   setupVolumeSlider() {
@@ -215,30 +232,24 @@ const SystemManager = {
     const muteBtn = document.getElementById('sysMuteBtn');
 
     if (slider) {
-      slider.addEventListener('mousedown', () => this.isUpdatingVolume = true);
-      slider.addEventListener('touchstart', () => this.isUpdatingVolume = true);
-
       slider.addEventListener('input', (e) => {
+        this.isUpdatingVolume = true;
         const val = parseInt(e.target.value, 10);
         if (label) label.textContent = `${val}%`;
-        if (window.VolumeKnob) window.VolumeKnob.setValue(val);
+        if (window.KnobManager) window.KnobManager.setValue(val);
       });
 
-      const commitVolume = async () => {
-        this.isUpdatingVolume = false;
-        const val = parseInt(slider.value, 10);
+      slider.addEventListener('change', async (e) => {
+        const val = parseInt(e.target.value, 10);
         try {
           await fetch('/api/system/volume', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ level: val })
           });
-        } catch (e) {}
-      };
-
-      slider.addEventListener('mouseup', commitVolume);
-      slider.addEventListener('touchend', commitVolume);
-      slider.addEventListener('change', commitVolume);
+        } catch (err) {}
+        this.isUpdatingVolume = false;
+      });
     }
 
     if (muteBtn) {
@@ -250,10 +261,10 @@ const SystemManager = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ mute_toggle: true })
           });
-          const d = await res.json();
-          muteBtn.classList.toggle('active', d.muted);
-          App.showToast(d.muted ? 'Muted' : 'Unmuted', 'info');
-        } catch (e) {}
+          const data = await res.json();
+          muteBtn.textContent = data.muted ? 'Unmute' : 'Mute';
+          muteBtn.classList.toggle('active', !!data.muted);
+        } catch (err) {}
       });
     }
   },
@@ -261,16 +272,16 @@ const SystemManager = {
   setupMediaControls() {
     document.querySelectorAll('[data-media]').forEach(btn => {
       btn.addEventListener('click', async () => {
+        const act = btn.dataset.media;
         if (window.SoundEffects) window.SoundEffects.playClick();
-        const action = btn.dataset.media;
         try {
           await fetch('/api/system/media', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: action })
+            body: JSON.stringify({ action: act })
           });
-          App.showToast(`Media: ${action}`, 'info');
-        } catch (e) {}
+          App.logAction('media', `Media: ${act}`);
+        } catch (err) {}
       });
     });
   },
@@ -278,20 +289,21 @@ const SystemManager = {
   setupPowerControls() {
     document.querySelectorAll('[data-power]').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (window.SoundEffects) window.SoundEffects.playClick();
-        const action = btn.dataset.power;
-        if (action === 'restart' || action === 'shutdown') {
-          if (!confirm(I18n.t('confirm_power'))) return;
+        const act = btn.dataset.power;
+        if (act === 'shutdown' || act === 'restart') {
+          if (!confirm(`Are you sure you want to ${act.toUpperCase()} the host PC?`)) return;
         }
+        if (window.SoundEffects) window.SoundEffects.playClick();
         try {
           const res = await fetch('/api/system/power', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: action })
+            body: JSON.stringify({ action: act })
           });
           const d = await res.json();
-          App.showToast(d.message || `Power: ${action}`, 'info');
-        } catch (e) {}
+          App.showToast(d.message || `Power action: ${act}`, 'info');
+          App.logAction('power', `Power: ${act}`);
+        } catch (err) {}
       });
     });
   },

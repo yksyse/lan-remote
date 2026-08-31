@@ -8,6 +8,7 @@ const StreamManager = {
   // Stream state
   isConnected: false,
   isPaused: false,
+  isGamepadActive: false,
   rttMs: 0,
   lastPingTime: 0,
   pingInterval: null,
@@ -50,6 +51,7 @@ const StreamManager = {
     this.setupEvents();
     this.setupMobileMouseBar();
     this.setupKeyboardDrawer();
+    this.setupGamepadOverlay();
     this.setupMonitorBar();
     this.setupOrientationControls();
     this.setupShortcutsBar();
@@ -125,9 +127,7 @@ const StreamManager = {
           };
           img.src = url;
         }
-      } catch (err) {
-        console.error('Frame render error:', err);
-      }
+      } catch (err) {}
     };
 
     this.ws.onclose = () => {
@@ -169,8 +169,55 @@ const StreamManager = {
     const pingEl = document.getElementById('streamPingStat');
     if (pingEl) {
       pingEl.textContent = `${this.rttMs} ms`;
-      pingEl.style.color = this.rttMs < 40 ? 'var(--accent-green)' : (this.rttMs < 100 ? 'var(--accent-yellow)' : 'var(--accent-red)');
+      pingEl.style.color = this.rttMs < 30 ? 'var(--accent-green)' : (this.rttMs < 75 ? 'var(--accent-yellow)' : 'var(--accent-red)');
     }
+  },
+
+  // ----------------------------------------------------
+  // Virtual Gamepad Controller (D-Pad, A/B/X/Y, Triggers)
+  // ----------------------------------------------------
+  setupGamepadOverlay() {
+    const toggleBtn = document.getElementById('toggleGamepadBtn');
+    const overlay = document.getElementById('gamepadOverlay');
+    if (!toggleBtn || !overlay) return;
+
+    toggleBtn.addEventListener('click', () => {
+      this.isGamepadActive = !this.isGamepadActive;
+      overlay.classList.toggle('active', this.isGamepadActive);
+      toggleBtn.classList.toggle('gamepad-active', this.isGamepadActive);
+      if (window.SoundEffects) window.SoundEffects.playClick();
+      App.showToast(this.isGamepadActive ? '🎮 Gamepad Mode Active' : 'Gamepad Disabled', 'info');
+    });
+
+    const bindKeyButton = (el, key) => {
+      if (!el || !key) return;
+
+      const handleDown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        el.classList.add('pressed');
+        this.vibrate(20);
+        this.sendInput({ type: 'key_down', key: key });
+      };
+
+      const handleUp = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        el.classList.remove('pressed');
+        this.sendInput({ type: 'key_up', key: key });
+      };
+
+      el.addEventListener('touchstart', handleDown, { passive: false });
+      el.addEventListener('touchend', handleUp, { passive: false });
+      el.addEventListener('touchcancel', handleUp, { passive: false });
+      el.addEventListener('mousedown', handleDown);
+      el.addEventListener('mouseup', handleUp);
+      el.addEventListener('mouseleave', handleUp);
+    };
+
+    overlay.querySelectorAll('[data-gkey]').forEach(btn => {
+      bindKeyButton(btn, btn.dataset.gkey);
+    });
   },
 
   // ----------------------------------------------------
@@ -266,7 +313,7 @@ const StreamManager = {
     if (dragBtn) dragBtn.classList.toggle('drag-active', this.isDragLockActive);
     if (mobileDragBtn) {
       mobileDragBtn.classList.toggle('active', this.isDragLockActive);
-      mobileDragBtn.textContent = this.isDragLockActive ? I18n.t('btn_drag_active') : I18n.t('btn_drag');
+      mobileDragBtn.querySelector('span').textContent = this.isDragLockActive ? I18n.t('btn_drag_active') : I18n.t('btn_drag');
     }
 
     if (this.isDragLockActive) {
@@ -421,6 +468,7 @@ const StreamManager = {
 
     // Mouse Events
     targetElement.addEventListener('mousemove', (e) => {
+      if (this.isGamepadActive) return;
       const { normX, normY } = this.getTouchCoordinates(e.clientX, e.clientY);
       this.virtualX = normX;
       this.virtualY = normY;
@@ -428,12 +476,14 @@ const StreamManager = {
     });
 
     targetElement.addEventListener('mousedown', (e) => {
+      if (this.isGamepadActive) return;
       e.preventDefault();
       const btn = e.button === 2 ? 'right' : (e.button === 1 ? 'middle' : 'left');
       this.sendInput({ type: 'down', button: btn });
     });
 
     targetElement.addEventListener('mouseup', (e) => {
+      if (this.isGamepadActive) return;
       const btn = e.button === 2 ? 'right' : (e.button === 1 ? 'middle' : 'left');
       this.sendInput({ type: 'up', button: btn });
     });
@@ -441,6 +491,7 @@ const StreamManager = {
     targetElement.addEventListener('contextmenu', (e) => e.preventDefault());
 
     targetElement.addEventListener('wheel', (e) => {
+      if (this.isGamepadActive) return;
       e.preventDefault();
       const dy = e.deltaY > 0 ? -120 : 120;
       this.sendInput({ type: 'wheel', dy: dy, dx: 0 });
@@ -448,6 +499,7 @@ const StreamManager = {
 
     // Touch Events
     targetElement.addEventListener('touchstart', (e) => {
+      if (this.isGamepadActive) return;
       const touches = e.touches;
       if (touches.length === 1) {
         const touch = touches[0];
@@ -470,6 +522,7 @@ const StreamManager = {
     }, { passive: true });
 
     targetElement.addEventListener('touchmove', (e) => {
+      if (this.isGamepadActive) return;
       const touches = e.touches;
       if (touches.length === 1) {
         const touch = touches[0];
@@ -514,6 +567,7 @@ const StreamManager = {
     }, { passive: true });
 
     targetElement.addEventListener('touchend', (e) => {
+      if (this.isGamepadActive) return;
       clearTimeout(this.longPressTimeout);
       const elapsed = Date.now() - this.touchStartTime;
 

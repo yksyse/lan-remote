@@ -10,8 +10,13 @@ import cv2
 import mss
 import numpy as np
 
-logger = logging.getLogger("ScreenStreamer")
+try:
+    import simplejpeg
+    simplejpeg_available = True
+except ImportError:
+    simplejpeg_available = False
 
+logger = logging.getLogger("ScreenStreamer")
 user32 = ctypes.windll.user32
 
 
@@ -25,10 +30,10 @@ class CURSORINFO(ctypes.Structure):
 
 
 class ScreenStreamer:
-    """High-performance Windows screen capture engine with pause/standby zero-resource mode."""
+    """High-performance 60 FPS Windows screen capture engine with SIMD accelerated JPEG encoding."""
 
     def __init__(self):
-        self.fps: int = 30
+        self.fps: int = 60
         self.quality: int = 65
         self.scale: float = 0.75
         self.monitor_index: int = 1
@@ -61,7 +66,7 @@ class ScreenStreamer:
             target=self._capture_loop, daemon=True, name="ScreenCaptureWorker"
         )
         self.capture_thread.start()
-        logger.info("Screen capture pipeline started.")
+        logger.info("High-speed 60 FPS screen capture pipeline started.")
 
     def stop(self):
         self.running = False
@@ -71,7 +76,7 @@ class ScreenStreamer:
 
     def pause(self):
         self.is_paused = True
-        logger.info("Screen stream paused (zero resource mode active).")
+        logger.info("Screen stream paused (0% CPU/GPU standby active).")
 
     def resume(self):
         self.is_paused = False
@@ -89,7 +94,7 @@ class ScreenStreamer:
         monitor_index: Optional[int] = None,
     ):
         if fps is not None:
-            self.fps = max(5, min(60, fps))
+            self.fps = max(10, min(120, fps))
         if quality is not None:
             self.quality = max(20, min(95, quality))
         if scale is not None:
@@ -133,8 +138,8 @@ class ScreenStreamer:
         return 0, 0, False
 
     def _capture_loop(self):
-        frame_times = collections.deque(maxlen=30)
-        encode_params = [
+        frame_times = collections.deque(maxlen=60)
+        cv_encode_params = [
             cv2.IMWRITE_JPEG_QUALITY,
             self.quality,
             cv2.IMWRITE_JPEG_OPTIMIZE,
@@ -144,7 +149,6 @@ class ScreenStreamer:
         with mss.mss() as sct:
             self._sct = sct
             while self.running:
-                # Standby: sleep when explicitly paused
                 if self.is_paused:
                     time.sleep(0.15)
                     continue
@@ -167,96 +171,63 @@ class ScreenStreamer:
                     img_np = np.frombuffer(
                         sct_img.bgra, dtype=np.uint8
                     ).reshape((sct_img.height, sct_img.width, 4))
-                    frame_bgr = cv2.cvtColor(img_np, cv2.COLOR_BGRA2BGR)
+
                     t_cap = time.perf_counter()
                     self.capture_time_ms = (t_cap - t0) * 1000.0
 
-                    # Render host mouse cursor
+                    # Draw hardware mouse pointer directly on buffer
                     cx, cy, cursor_visible = self._get_cursor_pos()
                     if cursor_visible:
                         rel_x = cx - monitor["left"]
                         rel_y = cy - monitor["top"]
-                        if (
-                            0 <= rel_x < monitor["width"]
-                            and 0 <= rel_y < monitor["height"]
-                        ):
-                            arrow_pts = np.array(
-                                [
-                                    [rel_x, rel_y],
-                                    [
-                                        rel_x,
-                                        min(
-                                            monitor["height"] - 1, rel_y + 16
-                                        ),
-                                    ],
-                                    [
-                                        min(monitor["width"] - 1, rel_x + 4),
-                                        min(
-                                            monitor["height"] - 1, rel_y + 12
-                                        ),
-                                    ],
-                                    [
-                                        min(monitor["width"] - 1, rel_x + 8),
-                                        min(
-                                            monitor["height"] - 1, rel_y + 18
-                                        ),
-                                    ],
-                                    [
-                                        min(monitor["width"] - 1, rel_x + 11),
-                                        min(
-                                            monitor["height"] - 1, rel_y + 17
-                                        ),
-                                    ],
-                                    [
-                                        min(monitor["width"] - 1, rel_x + 7),
-                                        min(
-                                            monitor["height"] - 1, rel_y + 11
-                                        ),
-                                    ],
-                                    [
-                                        min(monitor["width"] - 1, rel_x + 12),
-                                        min(
-                                            monitor["height"] - 1, rel_y + 11
-                                        ),
-                                    ],
-                                ],
-                                dtype=np.int32,
-                            )
-                            cv2.fillPoly(
-                                frame_bgr, [arrow_pts], (255, 255, 255)
-                            )
-                            cv2.polylines(
-                                frame_bgr,
-                                [arrow_pts],
-                                isClosed=True,
-                                color=(0, 0, 0),
-                                thickness=2,
-                            )
+                        if 0 <= rel_x < monitor["width"] and 0 <= rel_y < monitor["height"]:
+                            arrow_pts = np.array([
+                                [rel_x, rel_y],
+                                [rel_x, min(monitor["height"] - 1, rel_y + 16)],
+                                [min(monitor["width"] - 1, rel_x + 4), min(monitor["height"] - 1, rel_y + 12)],
+                                [min(monitor["width"] - 1, rel_x + 8), min(monitor["height"] - 1, rel_y + 18)],
+                                [min(monitor["width"] - 1, rel_x + 11), min(monitor["height"] - 1, rel_y + 17)],
+                                [min(monitor["width"] - 1, rel_x + 7), min(monitor["height"] - 1, rel_y + 11)],
+                                [min(monitor["width"] - 1, rel_x + 12), min(monitor["height"] - 1, rel_y + 11)],
+                            ], dtype=np.int32)
+                            cv2.fillPoly(img_np, [arrow_pts], (255, 255, 255, 255))
+                            cv2.polylines(img_np, [arrow_pts], isClosed=True, color=(0, 0, 0, 255), thickness=2)
 
-                    # Downscale resolution if requested
+                    # Resolution scaling
                     if self.scale < 1.0:
                         new_w = int(monitor["width"] * self.scale)
                         new_h = int(monitor["height"] * self.scale)
-                        frame_bgr = cv2.resize(
-                            frame_bgr,
-                            (new_w, new_h),
-                            interpolation=cv2.INTER_AREA,
+                        target_frame = cv2.resize(
+                            img_np, (new_w, new_h), interpolation=cv2.INTER_AREA
                         )
+                    else:
+                        target_frame = img_np
 
-                    self.frame_width = frame_bgr.shape[1]
-                    self.frame_height = frame_bgr.shape[0]
+                    self.frame_width = target_frame.shape[1]
+                    self.frame_height = target_frame.shape[0]
 
-                    encode_params[1] = self.quality
-                    success, buffer = cv2.imencode(
-                        ".jpg", frame_bgr, encode_params
-                    )
-                    t_enc = time.perf_counter()
-                    self.encode_time_ms = (t_enc - t_cap) * 1000.0
+                    # Ultra-fast SIMD direct BGRA encoding
+                    t_enc_start = time.perf_counter()
+                    if simplejpeg_available:
+                        encoded_bytes = simplejpeg.encode_jpeg(
+                            target_frame,
+                            quality=self.quality,
+                            colorspace="BGRA",
+                            fastdct=True,
+                        )
+                        success = True
+                    else:
+                        bgr = cv2.cvtColor(target_frame, cv2.COLOR_BGRA2BGR)
+                        cv_encode_params[1] = self.quality
+                        success, buffer = cv2.imencode(".jpg", bgr, cv_encode_params)
+                        encoded_bytes = buffer.tobytes() if success else None
 
-                    if success:
-                        self.latest_frame_bytes = buffer.tobytes()
+                    self.encode_time_ms = (time.perf_counter() - t_enc_start) * 1000.0
+
+                    if success and encoded_bytes:
+                        self.latest_frame_bytes = encoded_bytes
                         self.latest_frame_time = time.time()
-                        self.last_frame_size = len(self.latest_frame_bytes)
+                        self.last_frame_size = len(encoded_bytes)
 
                     frame_times.append(time.perf_counter())
                     if len(frame_times) >= 2:
@@ -266,11 +237,11 @@ class ScreenStreamer:
 
                 except Exception as e:
                     logger.error(f"Frame capture error: {e}")
-                    time.sleep(0.05)
+                    time.sleep(0.01)
 
                 target_dt = 1.0 / self.fps
                 elapsed = time.perf_counter() - t0
-                sleep_time = max(0.001, target_dt - elapsed)
+                sleep_time = max(0.0005, target_dt - elapsed)
                 time.sleep(sleep_time)
 
 

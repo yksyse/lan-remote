@@ -14,15 +14,23 @@
 </head>
 <body>
 
-  <!-- Top Header Navigation (Spacious, Non-Jumping) -->
+  <!-- Top Header Navigation -->
   <header class="app-header">
     <div class="brand">
       <img src="/icons/desktop.svg" class="brand-icon" alt="Logo">
       <span data-i18n="app_title">LAN Remote</span>
     </div>
 
-    <div id="statusBadge" class="status-badge">
-      <span class="status-dot"></span><span data-i18n="connecting">Connecting...</span>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <div id="statusBadge" class="status-badge">
+        <span class="status-dot"></span><span data-i18n="connecting">Connecting...</span>
+      </div>
+
+      <!-- Battery Indicator Gauge -->
+      <div id="sysBatteryBadge" class="battery-badge" style="display:none;">
+        <img src="/icons/battery.svg" alt="">
+        <span>--%</span>
+      </div>
     </div>
 
     <!-- Search in Header for Quick Access -->
@@ -77,8 +85,46 @@
 
         <canvas id="streamCanvas" width="1920" height="1080"></canvas>
         
-        <!-- Virtual Trackpad Touch Overlay (Transparent touch surface) -->
+        <!-- Virtual Trackpad Touch Overlay -->
         <div id="trackpadOverlay" class="trackpad-overlay active"></div>
+
+        <!-- Virtual Gamepad Overlay (D-Pad, A/B/X/Y, Triggers) -->
+        <div id="gamepadOverlay" class="gamepad-overlay">
+          
+          <!-- Top Shoulder Triggers -->
+          <div class="gamepad-top-triggers">
+            <button class="gamepad-btn" data-gkey="q" style="padding:4px 12px;font-size:0.75rem;">LB</button>
+            <button class="gamepad-btn" data-gkey="enter" style="padding:4px 10px;font-size:0.75rem;">START</button>
+            <button class="gamepad-btn" data-gkey="m" style="padding:4px 10px;font-size:0.75rem;">SEL</button>
+            <button class="gamepad-btn" data-gkey="tab" style="padding:4px 12px;font-size:0.75rem;">RB</button>
+          </div>
+
+          <!-- Left D-Pad -->
+          <div class="gamepad-dpad-container">
+            <div></div>
+            <button class="gamepad-btn" data-gkey="up">▲</button>
+            <div></div>
+            <button class="gamepad-btn" data-gkey="left">◀</button>
+            <div style="background:rgba(255,255,255,0.05);border-radius:50%;"></div>
+            <button class="gamepad-btn" data-gkey="right">▶</button>
+            <div></div>
+            <button class="gamepad-btn" data-gkey="down">▼</button>
+            <div></div>
+          </div>
+
+          <!-- Right Action Diamond (X, Y, A, B) -->
+          <div class="gamepad-action-container">
+            <div></div>
+            <button class="gamepad-btn gamepad-action-btn btn-y" data-gkey="r">Y</button>
+            <div></div>
+            <button class="gamepad-btn gamepad-action-btn btn-x" data-gkey="e">X</button>
+            <div></div>
+            <button class="gamepad-btn gamepad-action-btn btn-b" data-gkey="esc">B</button>
+            <div></div>
+            <button class="gamepad-btn gamepad-action-btn btn-a" data-gkey="space">A</button>
+            <div></div>
+          </div>
+        </div>
 
         <!-- Standby / Pause Zero-Resource Overlay -->
         <div id="streamStandbyOverlay" class="stream-standby-overlay">
@@ -93,7 +139,7 @@
           </button>
         </div>
 
-        <!-- Floating Hint (Fades out automatically) -->
+        <!-- Floating Hint -->
         <div id="trackpadHint" class="trackpad-hint" data-i18n="trackpad_hint">
           Trackpad: 1 finger move/tap, 2 fingers scroll, long press RMB, Drag button to move windows
         </div>
@@ -102,6 +148,9 @@
         <div class="stream-toolbar">
           <button id="toggleStreamPauseBtn" class="tool-btn" title="Pause Stream (Free 0% CPU/GPU)">
             <img src="/icons/pause.svg" alt="Pause">
+          </button>
+          <button id="toggleGamepadBtn" class="tool-btn" title="Touch Gamepad / Controller">
+            <img src="/icons/gamepad.svg" alt="Gamepad">
           </button>
           <button id="toggleInputModeBtn" class="tool-btn active" data-i18n-title="input_mode_btn" title="Toggle Trackpad / Direct Touch">
             <img src="/icons/mouse.svg" alt="Touch Mode">
@@ -197,7 +246,7 @@
       <div class="deck-header">
         <div class="deck-title" data-i18n="deck_title">Touch Deck</div>
         
-        <!-- Category Profiles Selector with Crisp SVG Icons -->
+        <!-- Category Profiles Selector with SVG Icons -->
         <div class="deck-profile-tabs">
           <button class="profile-tab-btn active" data-profile="all">
             <img src="/icons/grid.svg" alt="">
@@ -317,7 +366,7 @@
             </div>
           </div>
 
-          <!-- Power Management Panel (Spacious Non-wrapping Grid) -->
+          <!-- Power Management Panel -->
           <div class="control-panel">
             <div class="control-panel-title">
               <img src="/icons/power.svg" style="width:18px;height:18px;" alt="Power">
@@ -349,7 +398,20 @@
 
         </div>
 
-        <!-- Windows 11 Task Manager (Live Process Explorer & Dedicated GPU View) -->
+        <!-- Remote Desktop Toast Notification Sender -->
+        <div class="notify-panel">
+          <div class="control-panel-title">
+            <img src="/icons/bell.svg" style="width:18px;height:18px;" alt="">
+            <span>Отправить уведомление на рабочий стол ПК</span>
+          </div>
+          <div class="notify-row">
+            <input type="text" id="notifyTitleInput" class="notify-input" placeholder="Заголовок..." style="max-width:180px;" value="LAN Remote">
+            <input type="text" id="notifyMsgInput" class="notify-input" placeholder="Текст сообщения для экрана ПК...">
+            <button id="notifySendBtn" class="btn-primary" style="padding:9px 16px;">🔔 Отправить</button>
+          </div>
+        </div>
+
+        <!-- Windows 11 Task Manager -->
         <div class="taskmgr-panel">
           <div class="taskmgr-top-row">
             <div style="display:flex;align-items:center;gap:12px;">
@@ -405,7 +467,7 @@
             </table>
           </div>
 
-          <!-- View 2: Dedicated GPU Engines (3D, Video Decode, Video Encode, Copy, VRAM) -->
+          <!-- View 2: Dedicated GPU Engines -->
           <div id="taskMgrGpuView" style="display:none;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
               <div>
@@ -480,7 +542,7 @@
           </div>
         </div>
 
-        <!-- Clipboard History & Synchronization Panel (5 Items List) -->
+        <!-- Clipboard History Panel (5 Items) -->
         <div class="clipboard-panel">
           <div class="control-panel-title">
             <img src="/icons/copy.svg" style="width:18px;height:18px;" alt="">
@@ -493,7 +555,6 @@
             <button id="clipboardGetBtn" class="btn-secondary" data-i18n="clipboard_get_btn">Fetch from Host</button>
           </div>
 
-          <!-- History items list -->
           <div id="clipboardHistoryList" class="clipboard-history-list">
             <!-- Dynamically rendered -->
           </div>
@@ -515,7 +576,7 @@
       </div>
     </section>
 
-    <!-- TAB 4: MODULAR SETTINGS WITH THEMES & FUZZY SEARCH -->
+    <!-- TAB 4: MODULAR SETTINGS -->
     <section id="tab-settings" class="tab-pane">
       <div class="settings-container">
         
@@ -589,16 +650,16 @@
             <h3 data-i18n="sec_stream">Video & Screen Stream</h3>
           </div>
 
-          <div class="setting-item" data-tags="fps rate frame smoothness частота кадров">
+          <div class="setting-item" data-tags="fps rate frame smoothness частота кадров 60fps">
             <div class="setting-meta">
               <div class="setting-title" data-i18n="setting_fps_title">Target Frame Rate (FPS)</div>
-              <div class="setting-desc" data-i18n="setting_fps_desc">Smoothness of the screen stream (15, 30, or 60 FPS)</div>
+              <div class="setting-desc" data-i18n="setting_fps_desc">Smoothness of the screen stream (up to 60 FPS)</div>
             </div>
             <div class="setting-control">
               <select id="settingStreamFps" class="setting-select">
-                <option value="15" data-i18n="fps_15">15 FPS (Battery Saver)</option>
                 <option value="30" data-i18n="fps_30">30 FPS (Balanced)</option>
-                <option value="60" data-i18n="fps_60">60 FPS (Ultra Smooth)</option>
+                <option value="60" data-i18n="fps_60" selected>60 FPS (Ultra Smooth 60 FPS)</option>
+                <option value="90">90 FPS (High Refresh LAN)</option>
               </select>
             </div>
           </div>
@@ -611,7 +672,7 @@
             <div class="setting-control">
               <select id="settingStreamQuality" class="setting-select">
                 <option value="45" data-i18n="quality_low">Low (Fastest, ~20 KB/frame)</option>
-                <option value="65" data-i18n="quality_med">Medium (Optimal, ~50 KB/frame)</option>
+                <option value="65" data-i18n="quality_med" selected>Medium (Optimal, ~50 KB/frame)</option>
                 <option value="85" data-i18n="quality_high">High (Crisp Text, ~120 KB/frame)</option>
               </select>
             </div>
@@ -625,7 +686,7 @@
             <div class="setting-control">
               <select id="settingStreamScale" class="setting-select">
                 <option value="0.5" data-i18n="scale_50">50% Scale (High Speed)</option>
-                <option value="0.75" data-i18n="scale_75">75% Scale (Recommended)</option>
+                <option value="0.75" data-i18n="scale_75" selected>75% Scale (Recommended)</option>
                 <option value="1.0" data-i18n="scale_100">100% Native Resolution</option>
               </select>
             </div>

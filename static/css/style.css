@@ -199,6 +199,25 @@ header.app-header {
   50% { opacity: 0.4; transform: scale(0.85); }
 }
 
+/* Battery Pill in Header */
+.battery-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+}
+
+.battery-badge img {
+  width: 13px;
+  height: 13px;
+}
+
 /* Language Selector */
 .lang-selector {
   display: flex;
@@ -448,6 +467,84 @@ canvas#streamCanvas {
   display: block;
 }
 
+/* Virtual Gamepad Touch Overlay */
+.gamepad-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: none;
+  z-index: 28;
+  padding: 16px;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.gamepad-overlay.active {
+  display: flex;
+}
+
+.gamepad-dpad-container {
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
+  grid-template-rows: repeat(3, 44px);
+  gap: 4px;
+  pointer-events: auto;
+}
+
+.gamepad-btn {
+  background: rgba(18, 22, 32, 0.88);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-main);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  transition: all 0.08s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.gamepad-btn:active, .gamepad-btn.pressed {
+  background: var(--accent-blue);
+  color: #fff;
+  transform: scale(0.92);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.7);
+}
+
+.gamepad-action-container {
+  display: grid;
+  grid-template-columns: repeat(3, 46px);
+  grid-template-rows: repeat(3, 46px);
+  gap: 4px;
+  pointer-events: auto;
+}
+
+.gamepad-action-btn {
+  border-radius: 50%;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.gamepad-action-btn.btn-a { background: rgba(16, 185, 129, 0.3); border-color: rgba(16, 185, 129, 0.5); color: #34d399; }
+.gamepad-action-btn.btn-b { background: rgba(239, 68, 68, 0.3); border-color: rgba(239, 68, 68, 0.5); color: #f87171; }
+.gamepad-action-btn.btn-x { background: rgba(59, 130, 246, 0.3); border-color: rgba(59, 130, 246, 0.5); color: #60a5fa; }
+.gamepad-action-btn.btn-y { background: rgba(245, 158, 11, 0.3); border-color: rgba(245, 158, 11, 0.5); color: #fbbf24; }
+
+.gamepad-top-triggers {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+
 /* Floating Hint */
 .trackpad-hint {
   position: absolute;
@@ -527,6 +624,11 @@ canvas#streamCanvas {
 .tool-btn.paused-active {
   background-color: var(--accent-red) !important;
   color: #fff !important;
+}
+
+.tool-btn.gamepad-active {
+  background-color: var(--accent-green) !important;
+  color: #000 !important;
 }
 
 .tool-btn.drag-active {
@@ -683,7 +785,7 @@ canvas#streamCanvas {
 }
 
 /* -------------------------------------------------------------------
-   Tab 2: Touch Deck (Centered Relative to Filters & Header)
+   Tab 2: Touch Deck
    ------------------------------------------------------------------- */
 #tab-deck {
   align-items: center;
@@ -781,7 +883,7 @@ canvas#streamCanvas {
   background-color: var(--bg-tertiary);
 }
 
-/* Strict Max 4 Columns on PC, Perfectly Centered */
+/* Strict Max 4 Columns on PC, Centered */
 .deck-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -874,7 +976,7 @@ canvas#streamCanvas {
 }
 
 /* -------------------------------------------------------------------
-   Tab 3: System Dashboard, Task Manager & File Explorer
+   Tab 3: System Dashboard & Windows 11 Task Manager & File Explorer
    ------------------------------------------------------------------- */
 .system-dashboard {
   display: flex;
@@ -1296,6 +1398,35 @@ input[type="range"].volume-slider::-webkit-slider-thumb {
 
 .fs-item-row:hover {
   background-color: var(--bg-tertiary);
+}
+
+/* -------------------------------------------------------------------
+   Desktop Notification Sender Panel
+   ------------------------------------------------------------------- */
+.notify-panel {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.notify-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.notify-input {
+  flex: 1;
+  background-color: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-main) !important;
+  padding: 9px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
 }
 
 /* -------------------------------------------------------------------

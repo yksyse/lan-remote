@@ -30,7 +30,7 @@ kernel32 = ctypes.windll.kernel32
 
 
 class SystemManager:
-    """Manages host performance, GPU metrics, Task Manager, File Explorer, and clipboard history."""
+    """Manages host performance, GPU metrics, Task Manager, File Explorer, Battery, and Notifications."""
 
     def __init__(self):
         self._volume_endpoint = None
@@ -116,6 +116,40 @@ class SystemManager:
             return {"title": title or "Desktop", "process": pname}
         except Exception:
             return {"title": "Desktop", "process": "explorer.exe"}
+
+    def get_battery_status(self) -> Dict[str, Any]:
+        try:
+            bat = psutil.sensors_battery()
+            if bat:
+                return {
+                    "has_battery": True,
+                    "percent": round(bat.percent, 1),
+                    "power_plugged": bat.power_plugged,
+                    "secsleft": bat.secsleft,
+                }
+        except Exception:
+            pass
+        return {"has_battery": False, "percent": 100, "power_plugged": True}
+
+    def send_host_notification(self, title: str, message: str) -> Dict[str, Any]:
+        try:
+            safe_title = title.replace("'", " ").replace('"', " ")
+            safe_msg = message.replace("'", " ").replace('"', " ")
+            ps_cmd = f"""
+            [void] [System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms')
+            $notify = New-Object System.Windows.Forms.NotifyIcon
+            $notify.Icon = [System.Drawing.SystemIcons]::Information
+            $notify.BalloonTipTitle = '{safe_title}'
+            $notify.BalloonTipText = '{safe_msg}'
+            $notify.Visible = $True
+            $notify.ShowBalloonTip(5000)
+            """
+            subprocess.Popen(
+                ["powershell", "-WindowStyle", "Hidden", "-Command", ps_cmd]
+            )
+            return {"status": "ok", "title": title, "message": message}
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}
 
     # ----------------------------------------------------
     # Dedicated GPU Metrics & Engine Utilization
@@ -212,6 +246,7 @@ class SystemManager:
                 "history": list(self.ram_history),
             },
             "gpu": self.get_gpu_metrics(),
+            "battery": self.get_battery_status(),
             "disks": disks,
             "volume": vol,
             "muted": muted,
@@ -429,7 +464,6 @@ class SystemManager:
                 "path": part.mountpoint,
                 "label": f"Local Disk ({part.mountpoint.rstrip(chr(92))})"
             })
-        # Add User shortcuts
         user_profile = os.environ.get("USERPROFILE", "")
         if user_profile:
             drives.insert(0, {"path": os.path.join(user_profile, "Desktop"), "label": "Desktop"})
@@ -564,7 +598,6 @@ class SystemManager:
     # ----------------------------------------------------
     async def execute_command(self, command: str) -> Dict[str, Any]:
         try:
-            # Force UTF-8 and execute command
             wrapped_cmd = f"chcp 65001 >nul && {command}"
             proc = await asyncio.create_subprocess_shell(
                 wrapped_cmd,
@@ -576,7 +609,6 @@ class SystemManager:
             def smart_decode(raw_bytes: bytes) -> str:
                 if not raw_bytes:
                     return ""
-                # Try UTF-8 first, then cp866, then cp1251
                 for enc in ("utf-8", "cp866", "cp1251", "latin1"):
                     try:
                         return raw_bytes.decode(enc)

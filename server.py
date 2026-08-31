@@ -546,6 +546,16 @@ async def trigger_power(req: PowerRequest):
     return res
 
 
+class NotifyRequest(BaseModel):
+    title: str = "LAN Remote"
+    message: str
+
+
+@app.post("/api/system/notify")
+async def send_notification(req: NotifyRequest):
+    return system_mgr.send_host_notification(req.title, req.message)
+
+
 class ExecRequest(BaseModel):
     command: str
 

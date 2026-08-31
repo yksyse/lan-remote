@@ -15,7 +15,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "allow_remote_input": True
     },
     "stream": {
-        "fps": 30,
+        "fps": 60,
         "quality": 65,
         "scale": 0.75,
         "monitor_index": 1
