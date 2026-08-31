@@ -48,8 +48,9 @@ const App = {
       window.StreamManager.onTabVisible();
     } else if (tabId === 'deck' && window.DeckManager) {
       window.DeckManager.renderDeck();
-    } else if (tabId === 'system' && window.SystemManager) {
-      window.SystemManager.update();
+    } else if (tabId === 'system') {
+      if (window.SystemManager) window.SystemManager.update();
+      if (window.FileManager && !window.FileManager.currentPath) window.FileManager.loadPath();
     } else if (tabId === 'settings' && window.SettingsManager) {
       window.SettingsManager.renderNetworkInfo();
     }

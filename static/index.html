@@ -64,7 +64,7 @@
   <!-- Main App View -->
   <main class="app-content">
 
-    <!-- TAB 1: SCREEN STREAM -->
+    <!-- TAB 1: SCREEN STREAM & REMOTE CONTROL -->
     <section id="tab-stream" class="tab-pane active">
       <div class="stream-container">
         
@@ -80,6 +80,19 @@
         <!-- Virtual Trackpad Touch Overlay (Transparent touch surface) -->
         <div id="trackpadOverlay" class="trackpad-overlay active"></div>
 
+        <!-- Standby / Pause Zero-Resource Overlay -->
+        <div id="streamStandbyOverlay" class="stream-standby-overlay">
+          <img src="/icons/desktop.svg" style="width:48px;height:48px;opacity:0.6;" alt="">
+          <div style="font-size:1.15rem;font-weight:700;color:var(--text-main);">Трансляция экрана на паузе</div>
+          <div style="font-size:0.85rem;color:var(--text-muted);max-width:320px;">
+            Захват экрана выключен. Сервер освободил 100% ресурсов процессора и видеокарты.
+          </div>
+          <button id="standbyResumeBtn" class="btn-standby-resume">
+            <img src="/icons/play.svg" style="width:20px;height:20px;" alt="">
+            <span>Возобновить стрим</span>
+          </button>
+        </div>
+
         <!-- Floating Hint (Fades out automatically) -->
         <div id="trackpadHint" class="trackpad-hint" data-i18n="trackpad_hint">
           Trackpad: 1 finger move/tap, 2 fingers scroll, long press RMB, Drag button to move windows
@@ -87,6 +100,9 @@
 
         <!-- Floating Quick Toolbar -->
         <div class="stream-toolbar">
+          <button id="toggleStreamPauseBtn" class="tool-btn" title="Pause Stream (Free 0% CPU/GPU)">
+            <img src="/icons/pause.svg" alt="Pause">
+          </button>
           <button id="toggleInputModeBtn" class="tool-btn active" data-i18n-title="input_mode_btn" title="Toggle Trackpad / Direct Touch">
             <img src="/icons/mouse.svg" alt="Touch Mode">
           </button>
@@ -146,7 +162,26 @@
         </div>
       </div>
 
-      <!-- Dedicated Mobile Mouse Control Bar (Visible on touch/mobile) -->
+      <!-- Quick Windows Shortcuts Bar -->
+      <div class="stream-shortcuts-bar">
+        <button class="shortcut-pill-btn" data-combo="win+d">
+          <img src="/icons/desktop.svg" style="width:13px;height:13px;" alt=""> <span>Рабочий стол (Win+D)</span>
+        </button>
+        <button class="shortcut-pill-btn" data-combo="alt+tab">
+          <img src="/icons/layers.svg" style="width:13px;height:13px;" alt=""> <span>Смена окон (Alt+Tab)</span>
+        </button>
+        <button class="shortcut-pill-btn" data-combo="win+v">
+          <img src="/icons/copy.svg" style="width:13px;height:13px;" alt=""> <span>Буфер Windows (Win+V)</span>
+        </button>
+        <button class="shortcut-pill-btn" data-combo="win+shift+s">
+          <img src="/icons/edit.svg" style="width:13px;height:13px;" alt=""> <span>Скриншот (Win+Shift+S)</span>
+        </button>
+        <button class="shortcut-pill-btn" data-combo="ctrl+shift+esc">
+          <img src="/icons/activity.svg" style="width:13px;height:13px;" alt=""> <span>Диспетчер задач</span>
+        </button>
+      </div>
+
+      <!-- Dedicated Mobile Mouse Control Bar -->
       <div class="mobile-mouse-bar">
         <button id="mobileLmbBtn" class="mouse-action-btn" data-i18n="btn_lmb">ЛКМ (Левая)</button>
         <button id="mobileDragBtn" class="mouse-action-btn" data-i18n="btn_drag">🔒 Зажать (Drag)</button>
@@ -154,7 +189,7 @@
       </div>
     </section>
 
-    <!-- TAB 2: TOUCH DECK (WITH CATEGORY PROFILES & SVG ICONS) -->
+    <!-- TAB 2: TOUCH DECK (CENTERED RELATIVE TO FILTERS & HEADER) -->
     <section id="tab-deck" class="tab-pane">
       <div class="deck-header">
         <div class="deck-title" data-i18n="deck_title">Touch Deck</div>
@@ -188,11 +223,11 @@
       </div>
       
       <div id="deckGrid" class="deck-grid">
-        <!-- Rendered dynamically (Max 4 per row on PC) -->
+        <!-- Rendered dynamically (Strictly centered, max 4 per row on PC) -->
       </div>
     </section>
 
-    <!-- TAB 3: SYSTEM DASHBOARD & WINDOWS 11 TASK MANAGER -->
+    <!-- TAB 3: SYSTEM DASHBOARD & WINDOWS 11 TASK MANAGER & FILE EXPLORER -->
     <section id="tab-system" class="tab-pane">
       <div class="system-dashboard">
         
@@ -401,6 +436,37 @@
             </div>
           </div>
 
+        </div>
+
+        <!-- LAN File Explorer & Fast Sharing -->
+        <div class="fs-panel">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <div class="control-panel-title">
+              <img src="/icons/folder.svg" style="width:18px;height:18px;" alt="">
+              <span>Проводник файлов ПК</span>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <input type="file" id="fsUploadInput" style="display:none;">
+              <button id="fsUploadBtn" class="btn-primary" style="padding:4px 10px;font-size:0.75rem;">⬆ Загрузить на ПК</button>
+              <button id="fsUpBtn" class="btn-secondary" style="padding:4px 10px;font-size:0.75rem;">📁 Вверх</button>
+              <button id="fsRefreshBtn" class="btn-secondary" style="padding:4px 8px;font-size:0.75rem;">🔄</button>
+            </div>
+          </div>
+
+          <div id="fsDrivesRow" class="fs-drives-row">
+            <!-- Dynamically populated -->
+          </div>
+
+          <div class="fs-breadcrumb-bar">
+            <span style="color:var(--accent-blue);">Путь:</span>
+            <span id="fsCurrentPathLabel">C:\</span>
+          </div>
+
+          <div class="fs-list-container">
+            <div id="fsItemsList">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
         </div>
 
         <!-- Clipboard History & Synchronization Panel (5 Items List) -->
@@ -799,6 +865,7 @@
   <script src="/static/js/deck.js"></script>
   <script src="/static/js/knob.js"></script>
   <script src="/static/js/taskmgr.js"></script>
+  <script src="/static/js/files.js"></script>
   <script src="/static/js/system.js"></script>
   <script src="/static/js/settings.js"></script>
 </body>

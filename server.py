@@ -31,7 +31,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("LAN-Remote")
 
-app = FastAPI(title="LAN Remote Control", version="1.4.0")
+app = FastAPI(title="LAN Remote Control", version="1.5.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -123,12 +123,13 @@ async def websocket_stream(websocket: WebSocket):
 
     try:
         while True:
-            frame_bytes = streamer.latest_frame_bytes
-            frame_time = streamer.latest_frame_time
+            if not streamer.is_paused:
+                frame_bytes = streamer.latest_frame_bytes
+                frame_time = streamer.latest_frame_time
 
-            if frame_bytes and frame_time > last_sent_time:
-                last_sent_time = frame_time
-                await websocket.send_bytes(frame_bytes)
+                if frame_bytes and frame_time > last_sent_time:
+                    last_sent_time = frame_time
+                    await websocket.send_bytes(frame_bytes)
 
             fps = streamer.fps
             await asyncio.sleep(1.0 / (fps * 1.5))
@@ -251,6 +252,7 @@ async def websocket_input(websocket: WebSocket):
 async def get_status():
     metrics = system_mgr.get_metrics()
     metrics["stream"] = {
+        "is_paused": streamer.is_paused,
         "real_fps": round(streamer.real_fps, 1),
         "target_fps": streamer.fps,
         "quality": streamer.quality,
@@ -266,6 +268,24 @@ async def get_status():
     metrics["monitors"] = streamer.get_monitors()
     metrics["virtual_cursor"] = virtual_cursor
     return metrics
+
+
+@app.post("/api/stream/toggle")
+async def toggle_stream_pause():
+    paused = streamer.toggle_pause()
+    return {"status": "ok", "is_paused": paused}
+
+
+@app.post("/api/stream/pause")
+async def pause_stream():
+    streamer.pause()
+    return {"status": "ok", "is_paused": True}
+
+
+@app.post("/api/stream/resume")
+async def resume_stream():
+    streamer.resume()
+    return {"status": "ok", "is_paused": False}
 
 
 @app.get("/api/system/gpu")
@@ -306,6 +326,33 @@ async def update_config(update: SectionUpdate):
             monitor_index=update.values.get("monitor_index"),
         )
     return {"status": "ok", "config": cfg_mgr.get_all()}
+
+
+# ----------------------------------------------------
+# REST API: LAN File Explorer
+# ----------------------------------------------------
+@app.get("/api/fs/list")
+async def list_files(path: Optional[str] = Query(None)):
+    return system_mgr.list_directory(path)
+
+
+@app.get("/api/fs/download")
+async def download_file(path: str = Query(...)):
+    if not os.path.exists(path) or os.path.isdir(path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(path, filename=os.path.basename(path))
+
+
+@app.post("/api/fs/upload")
+async def upload_file(
+    target_dir: str = Query(...), file: UploadFile = File(...)
+):
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir, exist_ok=True)
+    dest = os.path.join(target_dir, file.filename)
+    with open(dest, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+    return {"status": "ok", "filename": file.filename, "path": dest}
 
 
 # ----------------------------------------------------

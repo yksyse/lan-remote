@@ -1,13 +1,11 @@
-import asyncio
 import ctypes
-import ctypes.wintypes
-import io
+from ctypes import wintypes
 import logging
+import os
 import threading
 import time
-from typing import Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 import cv2
-from fastapi import WebSocket
 import mss
 import numpy as np
 
@@ -15,61 +13,70 @@ logger = logging.getLogger("ScreenStreamer")
 
 user32 = ctypes.windll.user32
 
-
 class CURSORINFO(ctypes.Structure):
     _fields_ = [
-        ("cbSize", ctypes.c_ulong),
-        ("flags", ctypes.c_ulong),
-        ("hCursor", ctypes.c_void_p),
-        ("ptScreenPos", ctypes.wintypes.POINT),
+        ("cbSize", wintypes.DWORD),
+        ("flags", wintypes.DWORD),
+        ("hCursor", wintypes.HANDLE),
+        ("ptScreenPos", wintypes.POINT),
     ]
 
-
 class ScreenStreamer:
-    """High-throughput screen capture pipeline with Windows cursor overlay."""
+    """High-performance Windows screen capture engine with pause/standby zero-resource mode."""
 
     def __init__(self):
         self.fps: int = 30
         self.quality: int = 65
         self.scale: float = 0.75
         self.monitor_index: int = 1
-        self.is_running: bool = False
+
+        self.running: bool = False
+        self.is_paused: bool = False
+        self.capture_thread: Optional[threading.Thread] = None
 
         self.latest_frame_bytes: Optional[bytes] = None
-        self.latest_frame_time: float = 0
+        self.latest_frame_time: float = 0.0
         self.frame_width: int = 1920
         self.frame_height: int = 1080
         self.original_width: int = 1920
         self.original_height: int = 1080
 
-        # Stats
-        self.real_fps: float = 0.0
         self.last_frame_size: int = 0
+        self.real_fps: float = 0.0
         self.capture_time_ms: float = 0.0
         self.encode_time_ms: float = 0.0
 
-        # Clients
-        self.active_sockets: Set[WebSocket] = set()
-        self.lock = threading.Lock()
-        self._thread: Optional[threading.Thread] = None
+        self.active_sockets = set()
+        self._sct = None
 
-    def get_monitors(self) -> List[Dict]:
-        with mss.mss() as sct:
-            monitors = []
-            for idx, m in enumerate(sct.monitors):
-                if idx == 0:
-                    continue
-                monitors.append(
-                    {
-                        "id": idx,
-                        "name": f"Display {idx} ({m['width']}x{m['height']})",
-                        "width": m["width"],
-                        "height": m["height"],
-                        "left": m["left"],
-                        "top": m["top"],
-                    }
-                )
-            return monitors
+    def start(self):
+        if self.running:
+            return
+        self.running = True
+        self.is_paused = False
+        self.capture_thread = threading.Thread(
+            target=self._capture_loop, daemon=True, name="ScreenCaptureWorker"
+        )
+        self.capture_thread.start()
+        logger.info("Screen capture pipeline started.")
+
+    def stop(self):
+        self.running = False
+        if self.capture_thread and self.capture_thread.is_alive():
+            self.capture_thread.join(timeout=1.0)
+        logger.info("Screen capture pipeline stopped.")
+
+    def pause(self):
+        self.is_paused = True
+        logger.info("Screen stream paused (zero resource mode active).")
+
+    def resume(self):
+        self.is_paused = False
+        logger.info("Screen stream resumed.")
+
+    def toggle_pause(self) -> bool:
+        self.is_paused = not self.is_paused
+        return self.is_paused
 
     def update_settings(
         self,
@@ -78,157 +85,130 @@ class ScreenStreamer:
         scale: Optional[float] = None,
         monitor_index: Optional[int] = None,
     ):
-        with self.lock:
-            if fps is not None:
-                self.fps = max(5, min(60, fps))
-            if quality is not None:
-                self.quality = max(10, min(95, quality))
-            if scale is not None:
-                self.scale = max(0.25, min(1.0, scale))
-            if monitor_index is not None:
-                self.monitor_index = max(1, monitor_index)
+        if fps is not None:
+            self.fps = max(5, min(60, fps))
+        if quality is not None:
+            self.quality = max(20, min(95, quality))
+        if scale is not None:
+            self.scale = max(0.25, min(1.0, scale))
+        if monitor_index is not None:
+            self.monitor_index = max(1, monitor_index)
 
-    def start(self):
-        if self.is_running:
-            return
-        self.is_running = True
-        self._thread = threading.Thread(target=self._capture_loop, daemon=True)
-        self._thread.start()
-        logger.info("Screen capture pipeline started.")
+    def get_monitors(self) -> List[Dict[str, Any]]:
+        monitors_info = []
+        try:
+            with mss.mss() as sct:
+                for idx, m in enumerate(sct.monitors[1:], start=1):
+                    monitors_info.append({
+                        "id": idx,
+                        "name": f"Display {idx} ({m['width']}x{m['height']})",
+                        "width": m["width"],
+                        "height": m["height"],
+                        "top": m["top"],
+                        "left": m["left"],
+                        "is_primary": idx == 1,
+                    })
+        except Exception as e:
+            logger.error(f"Error fetching monitors: {e}")
+        return monitors_info or [{"id": 1, "name": "Display 1 (1920x1080)", "width": 1920, "height": 1080, "is_primary": True}]
 
-    def stop(self):
-        self.is_running = False
-        if self._thread:
-            self._thread.join(timeout=1.0)
-        logger.info("Screen capture pipeline stopped.")
-
-    def _draw_cursor(self, img_array: np.ndarray, monitor: dict, scale: float):
-        """Draw Windows host mouse cursor directly onto the captured frame."""
+    def _get_cursor_pos(self) -> tuple[int, int, bool]:
         try:
             ci = CURSORINFO()
             ci.cbSize = ctypes.sizeof(CURSORINFO)
             if user32.GetCursorInfo(ctypes.byref(ci)):
                 if ci.flags == 1:  # CURSOR_SHOWING
-                    cx = ci.ptScreenPos.x - monitor.get("left", 0)
-                    cy = ci.ptScreenPos.y - monitor.get("top", 0)
-                    mon_w = monitor.get("width", 1920)
-                    mon_h = monitor.get("height", 1080)
-
-                    if 0 <= cx < mon_w and 0 <= cy < mon_h:
-                        scx = int(cx * scale)
-                        scy = int(cy * scale)
-
-                        # Arrow cursor polygon
-                        pts = np.array(
-                            [
-                                [scx, scy],
-                                [scx + 11, scy + 11],
-                                [scx + 5, scy + 11],
-                                [scx + 8, scy + 18],
-                                [scx + 5, scy + 19],
-                                [scx + 2, scy + 12],
-                                [-4 + scx, scy + 14],
-                            ],
-                            np.int32,
-                        )
-
-                        # White arrow with crisp black outline
-                        cv2.fillPoly(img_array, [pts], (255, 255, 255))
-                        cv2.polylines(
-                            img_array, [pts], True, (0, 0, 0), 1, cv2.LINE_AA
-                        )
+                    return ci.ptScreenPos.x, ci.ptScreenPos.y, True
         except Exception:
             pass
+        return 0, 0, False
 
     def _capture_loop(self):
+        frame_times = collections.deque(maxlen=30)
         encode_params = [
             cv2.IMWRITE_JPEG_QUALITY,
             self.quality,
             cv2.IMWRITE_JPEG_OPTIMIZE,
             0,
         ]
-        frame_count = 0
-        fps_timer = time.time()
 
         with mss.mss() as sct:
-            while self.is_running:
-                loop_start = time.time()
+            self._sct = sct
+            while self.running:
+                # Standby / Zero resource mode: sleep when paused or no viewers
+                if self.is_paused or len(self.active_sockets) == 0:
+                    time.sleep(0.15)
+                    continue
 
-                with self.lock:
-                    target_fps = self.fps
-                    target_quality = self.quality
-                    target_scale = self.scale
-                    mon_idx = self.monitor_index
-
-                if encode_params[1] != target_quality:
-                    encode_params[1] = target_quality
-
-                if mon_idx >= len(sct.monitors):
-                    mon_idx = 1
-                monitor = sct.monitors[mon_idx]
+                t0 = time.perf_counter()
 
                 try:
-                    t0 = time.perf_counter()
-                    raw = sct.grab(monitor)
-                    t1 = time.perf_counter()
-                    self.capture_time_ms = (t1 - t0) * 1000.0
+                    num_monitors = len(sct.monitors) - 1
+                    target_mon_idx = min(self.monitor_index, num_monitors) if num_monitors > 0 else 1
+                    monitor = sct.monitors[target_mon_idx]
 
-                    self.original_width = raw.width
-                    self.original_height = raw.height
+                    self.original_width = monitor["width"]
+                    self.original_height = monitor["height"]
 
-                    # Convert raw BGRA buffer to BGR
-                    img_array = np.frombuffer(raw.raw, dtype=np.uint8).reshape(
-                        (raw.height, raw.width, 4)
-                    )[:, :, :3]
-
-                    # Scale if requested
-                    if target_scale < 0.99:
-                        new_w = int(raw.width * target_scale)
-                        new_h = int(raw.height * target_scale)
-                        img_array = cv2.resize(
-                            img_array,
-                            (new_w, new_h),
-                            interpolation=cv2.INTER_LINEAR,
-                        )
-                        self.frame_width = new_w
-                        self.frame_height = new_h
-                        self._draw_cursor(img_array, monitor, target_scale)
-                    else:
-                        self.frame_width = raw.width
-                        self.frame_height = raw.height
-                        self._draw_cursor(img_array, monitor, 1.0)
-
-                    # Encode to JPEG
-                    t2 = time.perf_counter()
-                    success, enc_buf = cv2.imencode(
-                        ".jpg", img_array, encode_params
+                    sct_img = sct.grab(monitor)
+                    img_np = np.frombuffer(sct_img.bgra, dtype=np.uint8).reshape(
+                        (sct_img.height, sct_img.width, 4)
                     )
-                    t3 = time.perf_counter()
-                    self.encode_time_ms = (t3 - t2) * 1000.0
+                    frame_bgr = cv2.cvtColor(img_np, cv2.COLOR_BGRA2BGR)
+                    t_cap = time.perf_counter()
+                    self.capture_time_ms = (t_cap - t0) * 1000.0
+
+                    # Render host mouse cursor
+                    cx, cy, cursor_visible = self._get_cursor_pos()
+                    if cursor_visible:
+                        rel_x = cx - monitor["left"]
+                        rel_y = cy - monitor["top"]
+                        if 0 <= rel_x < monitor["width"] and 0 <= rel_y < monitor["height"]:
+                            arrow_pts = np.array([
+                                [rel_x, rel_y],
+                                [rel_x, min(monitor["height"] - 1, rel_y + 16)],
+                                [min(monitor["width"] - 1, rel_x + 4), min(monitor["height"] - 1, rel_y + 12)],
+                                [min(monitor["width"] - 1, rel_x + 8), min(monitor["height"] - 1, rel_y + 18)],
+                                [min(monitor["width"] - 1, rel_x + 11), min(monitor["height"] - 1, rel_y + 17)],
+                                [min(monitor["width"] - 1, rel_x + 7), min(monitor["height"] - 1, rel_y + 11)],
+                                [min(monitor["width"] - 1, rel_x + 12), min(monitor["height"] - 1, rel_y + 11)],
+                            ], dtype=np.int32)
+                            cv2.fillPoly(frame_bgr, [arrow_pts], (255, 255, 255))
+                            cv2.polylines(frame_bgr, [arrow_pts], isClosed=True, color=(0, 0, 0), thickness=2)
+
+                    # Downscale resolution if requested
+                    if self.scale < 1.0:
+                        new_w = int(monitor["width"] * self.scale)
+                        new_h = int(monitor["height"] * self.scale)
+                        frame_bgr = cv2.resize(frame_bgr, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+                    self.frame_width = frame_bgr.shape[1]
+                    self.frame_height = frame_bgr.shape[0]
+
+                    encode_params[1] = self.quality
+                    success, buffer = cv2.imencode(".jpg", frame_bgr, encode_params)
+                    t_enc = time.perf_counter()
+                    self.encode_time_ms = (t_enc - t_cap) * 1000.0
 
                     if success:
-                        frame_bytes = enc_buf.tobytes()
-                        self.last_frame_size = len(frame_bytes)
-                        self.latest_frame_bytes = frame_bytes
+                        self.latest_frame_bytes = buffer.tobytes()
                         self.latest_frame_time = time.time()
+                        self.last_frame_size = len(self.latest_frame_bytes)
 
-                    frame_count += 1
-                    now = time.time()
-                    if now - fps_timer >= 1.0:
-                        self.real_fps = frame_count / (now - fps_timer)
-                        frame_count = 0
-                        fps_timer = now
+                    frame_times.append(time.perf_counter())
+                    if len(frame_times) >= 2:
+                        dt = frame_times[-1] - frame_times[0]
+                        if dt > 0:
+                            self.real_fps = (len(frame_times) - 1) / dt
 
                 except Exception as e:
-                    logger.error(f"Capture error: {e}")
-                    time.sleep(0.1)
+                    logger.error(f"Frame capture error: {e}")
+                    time.sleep(0.05)
 
-                elapsed = time.time() - loop_start
-                target_period = 1.0 / target_fps
-                sleep_time = target_period - elapsed
-                if sleep_time > 0.001:
-                    time.sleep(sleep_time)
+                target_dt = 1.0 / self.fps
+                elapsed = time.perf_counter() - t0
+                sleep_time = max(0.001, target_dt - elapsed)
+                time.sleep(sleep_time)
 
-
-# Global streamer instance
+import collections
 streamer = ScreenStreamer()

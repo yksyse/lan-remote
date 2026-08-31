@@ -30,7 +30,7 @@ kernel32 = ctypes.windll.kernel32
 
 
 class SystemManager:
-    """Manages host performance, GPU metrics, Task Manager, and clipboard history."""
+    """Manages host performance, GPU metrics, Task Manager, File Explorer, and clipboard history."""
 
     def __init__(self):
         self._volume_endpoint = None
@@ -418,6 +418,70 @@ class SystemManager:
             return {"status": "error", "detail": str(e)}
 
     # ----------------------------------------------------
+    # LAN File Explorer & Drives Management
+    # ----------------------------------------------------
+    def get_drives(self) -> List[Dict[str, str]]:
+        drives = []
+        for part in psutil.disk_partitions(all=False):
+            if "cdrom" in part.opts or part.fstype == "":
+                continue
+            drives.append({
+                "path": part.mountpoint,
+                "label": f"Local Disk ({part.mountpoint.rstrip(chr(92))})"
+            })
+        # Add User shortcuts
+        user_profile = os.environ.get("USERPROFILE", "")
+        if user_profile:
+            drives.insert(0, {"path": os.path.join(user_profile, "Desktop"), "label": "📁 Desktop"})
+            drives.insert(1, {"path": os.path.join(user_profile, "Downloads"), "label": "⬇ Downloads"})
+            drives.insert(2, {"path": os.path.join(user_profile, "Documents"), "label": "📄 Documents"})
+        return drives
+
+    def list_directory(self, target_path: Optional[str] = None) -> Dict[str, Any]:
+        if not target_path or not os.path.exists(target_path):
+            target_path = os.environ.get("USERPROFILE") or "C:\\"
+
+        try:
+            items = []
+            with os.scandir(target_path) as entries:
+                for entry in entries:
+                    try:
+                        stat = entry.stat()
+                        is_dir = entry.is_dir()
+                        size_str = ""
+                        if not is_dir:
+                            size_bytes = stat.st_size
+                            if size_bytes > 1024 * 1024:
+                                size_str = f"{round(size_bytes / (1024*1024), 1)} MB"
+                            elif size_bytes > 1024:
+                                size_str = f"{round(size_bytes / 1024, 1)} KB"
+                            else:
+                                size_str = f"{size_bytes} B"
+
+                        items.append({
+                            "name": entry.name,
+                            "path": entry.path,
+                            "is_dir": is_dir,
+                            "size": size_str,
+                            "mtime": time.strftime("%d.%m.%Y %H:%M", time.localtime(stat.st_mtime))
+                        })
+                    except Exception:
+                        continue
+
+            items.sort(key=lambda x: (not x["is_dir"], x["name"].lower()))
+            parent = os.path.dirname(target_path) if target_path != os.path.dirname(target_path) else None
+
+            return {
+                "status": "ok",
+                "current_path": target_path,
+                "parent_path": parent,
+                "items": items[:150],
+                "drives": self.get_drives()
+            }
+        except Exception as e:
+            return {"status": "error", "detail": str(e), "current_path": target_path, "items": []}
+
+    # ----------------------------------------------------
     # Smart Network Interface Ranking (Real LAN vs Virtual VPNs)
     # ----------------------------------------------------
     def get_detailed_interfaces(self) -> List[Dict[str, Any]]:
@@ -430,18 +494,17 @@ class SystemManager:
                 if ip.startswith("127.") or ip.startswith("169.254."):
                     continue
 
-                # Categorize & rank priority
                 prio = 50
                 iface_lower = iface.lower()
 
                 if ip.startswith("192.168."):
-                    prio = 100  # Primary Home LAN / Wi-Fi
+                    prio = 100
                 elif ip.startswith("10."):
-                    prio = 80  # Corporate/Office LAN
+                    prio = 80
                 elif "radmin" in iface_lower or ip.startswith("26."):
-                    prio = 20  # Radmin VPN
+                    prio = 20
                 elif "tun" in iface_lower or "tap" in iface_lower:
-                    prio = 10  # Virtual Tunnel
+                    prio = 10
                 elif "veth" in iface_lower or "wsl" in iface_lower:
                     prio = 15
 
@@ -496,18 +559,35 @@ class SystemManager:
             return {"status": "ok", "message": "System shutting down"}
         return {"status": "error", "message": "Unknown power action"}
 
+    # ----------------------------------------------------
+    # Robust Shell Command Runner (Fixed Russian Encoding / No ?????)
+    # ----------------------------------------------------
     async def execute_command(self, command: str) -> Dict[str, Any]:
         try:
+            # Force UTF-8 and execute command
+            wrapped_cmd = f"chcp 65001 >nul && {command}"
             proc = await asyncio.create_subprocess_shell(
-                command,
+                wrapped_cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
             stdout, stderr = await proc.communicate()
+
+            def smart_decode(raw_bytes: bytes) -> str:
+                if not raw_bytes:
+                    return ""
+                # Try UTF-8 first, then cp866, then cp1251
+                for enc in ("utf-8", "cp866", "cp1251", "latin1"):
+                    try:
+                        return raw_bytes.decode(enc)
+                    except Exception:
+                        continue
+                return raw_bytes.decode("utf-8", errors="replace")
+
             return {
                 "status": "ok",
-                "stdout": stdout.decode("utf-8", errors="replace"),
-                "stderr": stderr.decode("utf-8", errors="replace"),
+                "stdout": smart_decode(stdout),
+                "stderr": smart_decode(stderr),
                 "exit_code": proc.returncode,
             }
         except Exception as e:

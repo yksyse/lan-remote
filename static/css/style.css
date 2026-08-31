@@ -71,7 +71,7 @@
   user-select: none;
 }
 
-/* Universal Input Reset (Ensures NO white backgrounds in inputs) */
+/* Universal Input Reset */
 input[type="text"],
 input[type="password"],
 input[type="number"],
@@ -347,7 +347,47 @@ canvas#streamCanvas {
   display: block;
 }
 
-/* Quick Monitor Switcher Top Bar */
+/* Stream Standby Zero-Resource Overlay */
+.stream-standby-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 12, 16, 0.94);
+  backdrop-filter: blur(12px);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 30;
+  text-align: center;
+  padding: 20px;
+}
+
+.stream-standby-overlay.active {
+  display: flex;
+}
+
+.btn-standby-resume {
+  background: var(--accent-blue);
+  color: #fff;
+  border: none;
+  padding: 14px 28px;
+  border-radius: var(--radius-full);
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.5);
+  transition: all 0.2s ease;
+}
+
+.btn-standby-resume:hover {
+  transform: scale(1.04);
+}
+
+/* Quick Display/Monitor Selector */
 .stream-top-bar {
   position: absolute;
   top: 12px;
@@ -484,6 +524,11 @@ canvas#streamCanvas {
   color: #fff;
 }
 
+.tool-btn.paused-active {
+  background-color: var(--accent-red) !important;
+  color: #fff !important;
+}
+
 .tool-btn.drag-active {
   background-color: var(--accent-yellow) !important;
   color: #000 !important;
@@ -503,11 +548,48 @@ canvas#streamCanvas {
   white-space: nowrap;
 }
 
+/* Quick Windows Shortcuts Bar under Stream */
+.stream-shortcuts-bar {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  width: 100%;
+}
+
+.shortcut-pill-btn {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.shortcut-pill-btn:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-main);
+}
+
+.shortcut-pill-btn:active {
+  transform: scale(0.96);
+  background-color: var(--accent-blue);
+  color: #fff;
+}
+
 /* Dedicated Mobile Mouse Control Bar */
 .mobile-mouse-bar {
   display: flex;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 8px;
   width: 100%;
 }
 
@@ -601,13 +683,20 @@ canvas#streamCanvas {
 }
 
 /* -------------------------------------------------------------------
-   Tab 2: Touch Deck
+   Tab 2: Touch Deck (Centered Relative to Filters & Header)
    ------------------------------------------------------------------- */
+#tab-deck {
+  align-items: center;
+  width: 100%;
+}
+
 .deck-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin: 0 auto 18px auto;
+  max-width: 900px;
+  width: 100%;
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -630,7 +719,7 @@ canvas#streamCanvas {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: var(--radius-sm);
   font-size: 0.82rem;
   font-weight: 600;
@@ -692,13 +781,14 @@ canvas#streamCanvas {
   background-color: var(--bg-tertiary);
 }
 
-/* Strict Max 4 Columns on PC */
+/* Strict Max 4 Columns on PC, Perfectly Centered */
 .deck-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   max-width: 900px;
   width: 100%;
+  margin: 0 auto;
 }
 
 .deck-card {
@@ -784,7 +874,7 @@ canvas#streamCanvas {
 }
 
 /* -------------------------------------------------------------------
-   Tab 3: System Dashboard, Task Manager & Live Sparklines
+   Tab 3: System Dashboard, Task Manager & File Explorer
    ------------------------------------------------------------------- */
 .system-dashboard {
   display: flex;
@@ -976,9 +1066,7 @@ input[type="range"].volume-slider::-webkit-slider-thumb {
   height: 16px;
 }
 
-/* -------------------------------------------------------------------
-   Windows 11 Task Manager Table & GPU View
-   ------------------------------------------------------------------- */
+/* Windows 11 Task Manager Table & GPU View */
 .taskmgr-panel {
   background-color: var(--bg-card);
   border: 1px solid var(--border);
@@ -1131,6 +1219,83 @@ input[type="range"].volume-slider::-webkit-slider-thumb {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* -------------------------------------------------------------------
+   LAN File Explorer
+   ------------------------------------------------------------------- */
+.fs-panel {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fs-drives-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.fs-drive-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: 5px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fs-drive-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-blue);
+}
+
+.fs-breadcrumb-bar {
+  display: flex;
+  align-items: center;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.fs-list-container {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.fs-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.fs-item-row:hover {
+  background-color: var(--bg-tertiary);
 }
 
 /* -------------------------------------------------------------------
@@ -1625,7 +1790,7 @@ input:checked + .slider:before {
     padding-bottom: calc(75px + env(safe-area-inset-bottom));
   }
   .stream-container {
-    min-height: calc(100dvh - 185px);
+    min-height: calc(100dvh - 210px);
     border-radius: var(--radius-md);
   }
   .stream-toolbar {

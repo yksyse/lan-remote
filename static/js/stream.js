@@ -7,6 +7,7 @@ const StreamManager = {
 
   // Stream state
   isConnected: false,
+  isPaused: false,
   rttMs: 0,
   lastPingTime: 0,
   pingInterval: null,
@@ -51,6 +52,8 @@ const StreamManager = {
     this.setupKeyboardDrawer();
     this.setupMonitorBar();
     this.setupOrientationControls();
+    this.setupShortcutsBar();
+    this.setupStandbyControls();
     this.updateCursorModeUI();
   },
 
@@ -99,11 +102,15 @@ const StreamManager = {
           this.canvas.width = bmp.width;
           this.canvas.height = bmp.height;
         }
-        this.ctx.drawImage(bmp, 0, 0);
-        bmp.close();
 
-        // Draw High-Visibility Virtual Pointer HUD
-        this.drawPointerHUD();
+        this.ctx.drawImage(bmp, 0, 0);
+
+        // Render visual pointer in Virtual mode
+        if (this.cursorMode === 'virtual') {
+          this.drawVirtualCursor();
+        }
+
+        bmp.close();
       } catch (err) {}
     };
 
@@ -111,7 +118,7 @@ const StreamManager = {
       this.isConnected = false;
       clearInterval(this.pingInterval);
       setTimeout(() => {
-        if (App.activeTab === 'stream') this.connectStreamWS();
+        if (document.visibilityState === 'visible') this.connectStreamWS();
       }, 2000);
     };
   },
@@ -125,12 +132,204 @@ const StreamManager = {
     }
 
     this.inputWs = new WebSocket(url);
-
     this.inputWs.onclose = () => {
       setTimeout(() => {
-        if (App.activeTab === 'stream') this.connectInputWS();
+        if (document.visibilityState === 'visible') this.connectInputWS();
       }, 2000);
     };
+  },
+
+  startPing() {
+    clearInterval(this.pingInterval);
+    this.pingInterval = setInterval(() => {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.lastPingTime = performance.now();
+        this.ws.send(JSON.stringify({ type: 'ping', ts: this.lastPingTime }));
+      }
+    }, 2000);
+  },
+
+  updateStatsUI() {
+    const pingEl = document.getElementById('streamPingStat');
+    if (pingEl) {
+      pingEl.textContent = `${this.rttMs} ms`;
+      pingEl.style.color = this.rttMs < 40 ? 'var(--accent-green)' : (this.rttMs < 100 ? 'var(--accent-yellow)' : 'var(--accent-red)');
+    }
+  },
+
+  // ----------------------------------------------------
+  // Stream Pause / Resume (Zero Resource Standby Mode)
+  // ----------------------------------------------------
+  async toggleStreamPause() {
+    if (window.SoundEffects) window.SoundEffects.playClick();
+    try {
+      const res = await fetch('/api/stream/toggle', { method: 'POST' });
+      const data = await res.json();
+      this.isPaused = !!data.is_paused;
+      this.updateStandbyUI();
+    } catch (e) {}
+  },
+
+  setupStandbyControls() {
+    const toggleBtn = document.getElementById('toggleStreamPauseBtn');
+    const standbyOverlay = document.getElementById('streamStandbyOverlay');
+    const resumeBtn = document.getElementById('standbyResumeBtn');
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => this.toggleStreamPause());
+    }
+
+    if (resumeBtn) {
+      resumeBtn.addEventListener('click', () => this.toggleStreamPause());
+    }
+  },
+
+  updateStandbyUI() {
+    const overlay = document.getElementById('streamStandbyOverlay');
+    const toggleBtn = document.getElementById('toggleStreamPauseBtn');
+    if (overlay) overlay.classList.toggle('active', this.isPaused);
+    if (toggleBtn) {
+      toggleBtn.classList.toggle('paused-active', this.isPaused);
+      toggleBtn.title = this.isPaused ? 'Resume Stream' : 'Pause Stream (0% CPU/GPU)';
+    }
+    App.showToast(this.isPaused ? 'Stream Paused (CPU/GPU 0%)' : 'Stream Resumed', 'info');
+  },
+
+  // ----------------------------------------------------
+  // Quick Windows Shortcuts Bar
+  // ----------------------------------------------------
+  setupShortcutsBar() {
+    document.querySelectorAll('.shortcut-pill-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const combo = btn.dataset.combo;
+        if (!combo) return;
+        if (window.SoundEffects) window.SoundEffects.playClick();
+        this.vibrate(20);
+
+        const keys = combo.split('+').map(k => k.trim().toLowerCase());
+        this.sendInput({ type: 'hotkey', keys: keys });
+        App.showToast(`Key Combo: ${combo.toUpperCase()}`, 'info');
+      });
+    });
+  },
+
+  drawVirtualCursor() {
+    const x = this.virtualX * this.canvas.width;
+    const y = this.virtualY * this.canvas.height;
+
+    this.ctx.save();
+    this.ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+    this.ctx.shadowBlur = 8;
+
+    this.ctx.beginPath();
+    this.ctx.moveTo(x, y);
+    this.ctx.lineTo(x + 14, y + 14);
+    this.ctx.lineTo(x + 5, y + 15);
+    this.ctx.lineTo(x + 9, y + 23);
+    this.ctx.lineTo(x + 5, y + 25);
+    this.ctx.lineTo(x + 1, y + 17);
+    this.ctx.lineTo(x - 4, y + 21);
+    this.ctx.closePath();
+
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.fill();
+    this.ctx.strokeStyle = '#000000';
+    this.ctx.lineWidth = 2;
+    this.ctx.stroke();
+
+    this.ctx.restore();
+  },
+
+  toggleDragLock() {
+    this.isDragLockActive = !this.isDragLockActive;
+    if (window.SoundEffects) window.SoundEffects.playClick();
+    this.vibrate(30);
+
+    const dragBtn = document.getElementById('toggleDragBtn');
+    const mobileDragBtn = document.getElementById('mobileDragBtn');
+    if (dragBtn) dragBtn.classList.toggle('drag-active', this.isDragLockActive);
+    if (mobileDragBtn) {
+      mobileDragBtn.classList.toggle('active', this.isDragLockActive);
+      mobileDragBtn.textContent = this.isDragLockActive ? I18n.t('btn_drag_active') : I18n.t('btn_drag');
+    }
+
+    if (this.isDragLockActive) {
+      this.sendInput({ type: 'down', button: 'left' });
+      App.showToast(I18n.t('drag_on_toast'), 'info');
+    } else {
+      this.sendInput({ type: 'up', button: 'left' });
+      App.showToast(I18n.t('drag_off_toast'), 'info');
+    }
+  },
+
+  setupOrientationControls() {
+    const orientBtn = document.getElementById('toggleOrientationBtn');
+    const container = document.querySelector('.stream-container');
+    if (!orientBtn || !container) return;
+
+    orientBtn.addEventListener('click', () => {
+      this.orientationMode = this.orientationMode === 'normal' ? 'rotated_90' : 'normal';
+      container.classList.toggle('rotated-90', this.orientationMode === 'rotated_90');
+      orientBtn.classList.toggle('active', this.orientationMode === 'rotated_90');
+      App.showToast(`${I18n.t('orientation_toast')}${this.orientationMode === 'normal' ? I18n.t('orient_normal') : I18n.t('orient_landscape')}`, 'info');
+    });
+  },
+
+  setupMonitorBar() {
+    this.fetchMonitors();
+  },
+
+  async fetchMonitors() {
+    try {
+      const res = await fetch('/api/monitors');
+      this.availableMonitors = await res.json();
+      this.renderMonitorPills();
+    } catch (e) {}
+  },
+
+  renderMonitorPills() {
+    const container = document.getElementById('quickMonitorSelector');
+    if (!container || !this.availableMonitors || this.availableMonitors.length === 0) return;
+
+    container.innerHTML = `<span style="font-size:0.68rem;color:var(--text-dim);font-weight:700;margin-right:2px;">${I18n.t('monitors_label')}:</span>`;
+
+    this.availableMonitors.forEach((m) => {
+      const btn = document.createElement('button');
+      btn.className = `mon-btn ${m.id === this.currentMonitor ? 'active' : ''}`;
+      btn.textContent = `D${m.id}`;
+      btn.title = m.name;
+      btn.addEventListener('click', () => this.switchMonitor(m.id));
+      container.appendChild(btn);
+    });
+  },
+
+  async switchMonitor(monId) {
+    this.currentMonitor = monId;
+    this.renderMonitorPills();
+    if (window.SoundEffects) window.SoundEffects.playClick();
+    try {
+      await fetch(`/api/monitors/switch/${monId}`, { method: 'POST' });
+      App.showToast(`Switched to Display ${monId}`, 'info');
+    } catch (e) {}
+  },
+
+  toggleCursorMode() {
+    this.cursorMode = this.cursorMode === 'physical' ? 'virtual' : 'physical';
+    localStorage.setItem('lan_remote_cursor_mode', this.cursorMode);
+    if (window.SoundEffects) window.SoundEffects.playClick();
+    this.updateCursorModeUI();
+    const modeText = this.cursorMode === 'physical' ? I18n.t('cursor_physical') : I18n.t('cursor_virtual');
+    App.showToast(`${I18n.t('cursor_mode_toast')}${modeText}`, 'info');
+  },
+
+  updateCursorModeUI() {
+    const btn = document.getElementById('toggleCursorModeBtn');
+    const select = document.getElementById('settingCursorMode');
+    if (btn) {
+      btn.classList.toggle('virtual-active', this.cursorMode === 'virtual');
+      btn.title = `Cursor: ${this.cursorMode.toUpperCase()}`;
+    }
+    if (select) select.value = this.cursorMode;
   },
 
   sendInput(data) {
@@ -140,234 +339,16 @@ const StreamManager = {
     }
   },
 
-  vibrate(ms = 15) {
-    if (this.hapticFeedback && 'vibrate' in navigator) {
-      try { navigator.vibrate(ms); } catch (e) {}
+  vibrate(ms = 20) {
+    if (this.hapticFeedback && navigator.vibrate) {
+      try { navigator.vibrate(ms); } catch(e) {}
     }
   },
 
-  startPing() {
-    clearInterval(this.pingInterval);
-    this.pingInterval = setInterval(() => {
-      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(JSON.stringify({ type: 'ping', ts: performance.now() }));
-      }
-    }, 1500);
-  },
-
-  updateStatsUI() {
-    const statEl = document.getElementById('streamPingStat');
-    if (statEl) {
-      statEl.textContent = `${this.rttMs}ms`;
-    }
-  },
-
-  drawPointerHUD() {
-    const ctx = this.ctx;
-    const cx = this.virtualX * this.canvas.width;
-    const cy = this.virtualY * this.canvas.height;
-
-    // Draw active pointer if virtual or drag is active
-    if (this.cursorMode === 'virtual' || this.isDragLockActive || this.inputMode === 'trackpad') {
-      ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,0.8)';
-      ctx.shadowBlur = 8;
-      ctx.fillStyle = this.isDragLockActive ? '#f59e0b' : '#3b82f6';
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-
-      // Pointer cursor
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(cx + 14, cy + 11);
-      ctx.lineTo(cx + 6, cy + 12);
-      ctx.lineTo(cx + 10, cy + 20);
-      ctx.lineTo(cx + 7, cy + 21);
-      ctx.lineTo(cx + 3, cy + 13);
-      ctx.lineTo(cx - 3, cy + 16);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      // Precision crosshair center dot
-      ctx.beginPath();
-      ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    // Click Ripple Animation
-    if (this.clickRipple) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(this.clickRipple.x, this.clickRipple.y, this.clickRipple.radius, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(59, 130, 246, ${this.clickRipple.opacity})`;
-      ctx.lineWidth = 3;
-      ctx.stroke();
-
-      this.clickRipple.radius += 2.5;
-      this.clickRipple.opacity -= 0.08;
-      if (this.clickRipple.opacity <= 0) {
-        this.clickRipple = null;
-      }
-      ctx.restore();
-    }
-  },
-
-  triggerRipple(normX, normY) {
-    this.clickRipple = {
-      x: normX * this.canvas.width,
-      y: normY * this.canvas.height,
-      radius: 4,
-      opacity: 1.0
-    };
-  },
-
-  showTrackpadHint() {
-    const hint = document.getElementById('trackpadHint');
-    if (!hint) return;
-    hint.classList.add('show');
-    clearTimeout(this.hintTimeout);
-    this.hintTimeout = setTimeout(() => hint.classList.remove('show'), 2500);
-  },
-
-  hideTrackpadHint() {
-    const hint = document.getElementById('trackpadHint');
-    if (hint) hint.classList.remove('show');
-  },
-
-  // ----------------------------------------------------
-  // Quick Monitor Switcher
-  // ----------------------------------------------------
-  async fetchMonitors() {
-    try {
-      const res = await fetch('/api/monitors');
-      this.availableMonitors = await res.json();
-      this.renderMonitorPills();
-    } catch (e) {}
-  },
-
-  setupMonitorBar() {
-    this.fetchMonitors();
-  },
-
-  renderMonitorPills() {
-    const bar = document.getElementById('quickMonitorSelector');
-    if (!bar) return;
-
-    bar.innerHTML = `<span style="font-size:0.7rem;color:var(--text-dim);margin:0 4px;font-weight:600;">${I18n.t('monitors_label')}:</span>`;
-
-    this.availableMonitors.forEach(mon => {
-      const btn = document.createElement('button');
-      btn.className = `mon-btn ${mon.id === this.currentMonitor ? 'active' : ''}`;
-      btn.textContent = `D${mon.id}`;
-      btn.title = mon.name;
-      btn.addEventListener('click', () => this.switchMonitor(mon.id));
-      bar.appendChild(btn);
-    });
-  },
-
-  async switchMonitor(monId) {
-    this.currentMonitor = monId;
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ type: 'set_monitor', monitor_index: monId }));
-    }
-    this.renderMonitorPills();
-    App.showToast(`${I18n.t('monitors_label')} ${monId}`, 'info');
-    App.logAction('desktop', `Monitor D${monId}`);
-  },
-
-  // ----------------------------------------------------
-  // Mobile Orientation (Landscape 90° rotate / normal)
-  // ----------------------------------------------------
-  setupOrientationControls() {
-    const orientBtn = document.getElementById('toggleOrientationBtn');
-    if (!orientBtn) return;
-
-    orientBtn.addEventListener('click', () => {
-      this.orientationMode = this.orientationMode === 'normal' ? 'rotated_90' : 'normal';
-      const container = document.querySelector('.stream-container');
-      
-      if (this.orientationMode === 'rotated_90') {
-        container.classList.add('rotated-90');
-        orientBtn.classList.add('active');
-        App.showToast(I18n.t('orient_landscape'), 'info');
-      } else {
-        container.classList.remove('rotated-90');
-        orientBtn.classList.remove('active');
-        App.showToast(I18n.t('orient_normal'), 'info');
-      }
-    });
-  },
-
-  // ----------------------------------------------------
-  // Drag Lock Toggle (Easy Window Dragging)
-  // ----------------------------------------------------
-  toggleDragLock() {
-    this.isDragLockActive = !this.isDragLockActive;
-    const btn = document.getElementById('mobileDragBtn');
-    const toolBtn = document.getElementById('toggleDragBtn');
-
-    if (this.isDragLockActive) {
-      this.vibrate(30);
-      this.sendInput({ type: 'down', button: 'left' });
-      if (btn) {
-        btn.classList.add('active');
-        btn.textContent = I18n.t('btn_drag_active');
-      }
-      if (toolBtn) toolBtn.classList.add('drag-active');
-      App.showToast(I18n.t('drag_on_toast'), 'info');
-      App.logAction('mouse', 'Drag Lock ON');
-    } else {
-      this.vibrate(15);
-      this.sendInput({ type: 'up', button: 'left' });
-      if (btn) {
-        btn.classList.remove('active');
-        btn.textContent = I18n.t('btn_drag');
-      }
-      if (toolBtn) toolBtn.classList.remove('drag-active');
-      App.showToast(I18n.t('drag_off_toast'), 'info');
-      App.logAction('mouse', 'Drag Lock OFF');
-    }
-  },
-
-  // ----------------------------------------------------
-  // Virtual Cursor Mode Toggle
-  // ----------------------------------------------------
-  toggleCursorMode() {
-    this.cursorMode = this.cursorMode === 'physical' ? 'virtual' : 'physical';
-    localStorage.setItem('lan_remote_cursor_mode', this.cursorMode);
-    this.updateCursorModeUI();
-    const modeName = this.cursorMode === 'physical' ? I18n.t('cursor_physical') : I18n.t('cursor_virtual');
-    App.showToast(`${I18n.t('cursor_mode_toast')}${modeName}`, 'info');
-  },
-
-  updateCursorModeUI() {
-    const btn = document.getElementById('toggleCursorModeBtn');
-    if (btn) {
-      btn.classList.toggle('virtual-active', this.cursorMode === 'virtual');
-      btn.title = `${I18n.t('cursor_mode_btn')}: ${this.cursorMode === 'physical' ? I18n.t('cursor_physical') : I18n.t('cursor_virtual')}`;
-    }
-    const select = document.getElementById('settingCursorMode');
-    if (select) select.value = this.cursorMode;
-  },
-
-  // ----------------------------------------------------
-  // Coordinate and Touch Mapping
-  // ----------------------------------------------------
   getTouchCoordinates(clientX, clientY) {
     const rect = this.canvas.getBoundingClientRect();
-    let normX = 0, normY = 0;
-
-    if (this.orientationMode === 'rotated_90') {
-      normX = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
-      normY = Math.max(0, Math.min(1, 1.0 - ((clientX - rect.left) / rect.width)));
-    } else {
-      normX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      normY = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
-    }
+    const normX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const normY = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
     return { normX, normY };
   },
 
@@ -375,95 +356,95 @@ const StreamManager = {
     const lmb = document.getElementById('mobileLmbBtn');
     const rmb = document.getElementById('mobileRmbBtn');
     const drag = document.getElementById('mobileDragBtn');
-    const toolDrag = document.getElementById('toggleDragBtn');
 
     if (lmb) {
       lmb.addEventListener('click', () => {
-        this.vibrate(15);
-        this.triggerRipple(this.virtualX, this.virtualY);
+        if (window.SoundEffects) window.SoundEffects.playClick();
+        this.vibrate(20);
         this.sendInput({ type: 'click', button: 'left' });
-        App.logAction('mouse', 'LMB Click');
+        App.logAction('mouse', 'LMB');
       });
     }
 
     if (rmb) {
       rmb.addEventListener('click', () => {
-        this.vibrate(25);
-        this.triggerRipple(this.virtualX, this.virtualY);
+        if (window.SoundEffects) window.SoundEffects.playClick();
+        this.vibrate(35);
         this.sendInput({ type: 'click', button: 'right' });
-        App.logAction('mouse', 'RMB Click');
+        App.logAction('mouse', 'RMB');
       });
     }
 
-    if (drag) drag.addEventListener('click', () => this.toggleDragLock());
-    if (toolDrag) toolDrag.addEventListener('click', () => this.toggleDragLock());
+    if (drag) {
+      drag.addEventListener('click', () => this.toggleDragLock());
+    }
+
+    const dragToolBtn = document.getElementById('toggleDragBtn');
+    if (dragToolBtn) {
+      dragToolBtn.addEventListener('click', () => this.toggleDragLock());
+    }
+  },
+
+  showTrackpadHint() {
+    const hint = document.getElementById('trackpadHint');
+    if (!hint) return;
+    hint.classList.add('show');
+    clearTimeout(this.hintTimeout);
+    this.hintTimeout = setTimeout(() => {
+      hint.classList.remove('show');
+    }, 3500);
+  },
+
+  hideTrackpadHint() {
+    const hint = document.getElementById('trackpadHint');
+    if (hint) hint.classList.remove('show');
   },
 
   setupEvents() {
-    const canvas = this.canvas;
-    const trackpadOverlay = document.getElementById('trackpadOverlay');
+    const targetElement = document.getElementById('trackpadOverlay') || this.canvas;
 
-    // 1. Mouse Events (Desktop)
-    canvas.addEventListener('mousemove', (e) => {
+    // Mouse Events
+    targetElement.addEventListener('mousemove', (e) => {
       const { normX, normY } = this.getTouchCoordinates(e.clientX, e.clientY);
       this.virtualX = normX;
       this.virtualY = normY;
-
-      if (this.inputMode === 'direct') {
-        this.sendInput({ type: 'move_abs', x: normX, y: normY });
-      }
+      this.sendInput({ type: 'move_abs', x: normX, y: normY });
     });
 
-    canvas.addEventListener('mousedown', (e) => {
+    targetElement.addEventListener('mousedown', (e) => {
       e.preventDefault();
       const btn = e.button === 2 ? 'right' : (e.button === 1 ? 'middle' : 'left');
-      this.triggerRipple(this.virtualX, this.virtualY);
       this.sendInput({ type: 'down', button: btn });
     });
 
-    canvas.addEventListener('mouseup', (e) => {
-      e.preventDefault();
+    targetElement.addEventListener('mouseup', (e) => {
       const btn = e.button === 2 ? 'right' : (e.button === 1 ? 'middle' : 'left');
       this.sendInput({ type: 'up', button: btn });
     });
 
-    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    targetElement.addEventListener('contextmenu', (e) => e.preventDefault());
 
-    canvas.addEventListener('wheel', (e) => {
+    targetElement.addEventListener('wheel', (e) => {
       e.preventDefault();
-      const dy = e.deltaY < 0 ? 120 : -120;
+      const dy = e.deltaY > 0 ? -120 : 120;
       this.sendInput({ type: 'wheel', dy: dy, dx: 0 });
     }, { passive: false });
 
-    // 2. Touch Gestures with Non-Linear Acceleration (Phone / Tablet)
-    const targetElement = trackpadOverlay || canvas;
-
+    // Touch Events
     targetElement.addEventListener('touchstart', (e) => {
-      this.hideTrackpadHint();
       const touches = e.touches;
-      const now = Date.now();
-
       if (touches.length === 1) {
         const touch = touches[0];
         this.lastTouchX = touch.clientX;
         this.lastTouchY = touch.clientY;
-        this.touchStartTime = now;
+        this.touchStartTime = Date.now();
         this.isDragging = false;
 
-        const { normX, normY } = this.getTouchCoordinates(touch.clientX, touch.clientY);
-        this.virtualX = normX;
-        this.virtualY = normY;
-
-        // Long press -> Right click
-        clearTimeout(this.longPressTimeout);
         this.longPressTimeout = setTimeout(() => {
-          if (!this.isDragging && !this.isDragLockActive) {
-            this.vibrate(35);
-            this.triggerRipple(this.virtualX, this.virtualY);
-            this.sendInput({ type: 'click', button: 'right' });
-            App.showToast(I18n.t('right_click_toast'), 'info');
-            App.logAction('mouse', 'RMB Long Press');
-          }
+          this.vibrate(40);
+          this.sendInput({ type: 'click', button: 'right' });
+          App.showToast(I18n.t('right_click_toast'), 'info');
+          App.logAction('mouse', 'RMB Long-press');
         }, 450);
 
       } else if (touches.length === 2) {
@@ -474,28 +455,20 @@ const StreamManager = {
 
     targetElement.addEventListener('touchmove', (e) => {
       const touches = e.touches;
-
       if (touches.length === 1) {
         const touch = touches[0];
         let rawDx = touch.clientX - this.lastTouchX;
         let rawDy = touch.clientY - this.lastTouchY;
 
-        if (this.orientationMode === 'rotated_90') {
-          const tempDx = rawDx;
-          rawDx = rawDy;
-          rawDy = -tempDx;
-        }
-
-        const dist = Math.hypot(rawDx, rawDy);
-        if (dist > 2) {
-          this.isDragging = true;
+        if (Math.abs(rawDx) > 3 || Math.abs(rawDy) > 3) {
           clearTimeout(this.longPressTimeout);
+          this.isDragging = true;
         }
 
-        // Non-linear acceleration: smooth for precision, fast for sweeps
-        const speedMultiplier = 1.0 + Math.min(dist / 25.0, 1.8);
-        const dx = rawDx * this.sensitivity * speedMultiplier;
-        const dy = rawDy * this.sensitivity * speedMultiplier;
+        const dist = Math.sqrt(rawDx * rawDx + rawDy * rawDy);
+        const accel = Math.min(2.2, 1.0 + (dist / 12) * 0.4);
+        const dx = rawDx * this.sensitivity * accel;
+        const dy = rawDy * this.sensitivity * accel;
 
         if (this.inputMode === 'trackpad') {
           this.virtualX = Math.max(0, Math.min(1, this.virtualX + (dx / this.canvas.width)));
@@ -530,13 +503,12 @@ const StreamManager = {
 
       if (!this.isDragging && elapsed < 300 && !this.isDragLockActive) {
         this.vibrate(15);
-        this.triggerRipple(this.virtualX, this.virtualY);
         this.sendInput({ type: 'click', button: 'left' });
         App.logAction('mouse', 'LMB Tap');
       }
     });
 
-    // 3. Floating Toolbar Buttons
+    // Toolbar Controls
     const modeBtn = document.getElementById('toggleInputModeBtn');
     if (modeBtn) {
       modeBtn.addEventListener('click', () => {
