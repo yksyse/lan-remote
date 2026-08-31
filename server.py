@@ -31,7 +31,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("LAN-Remote")
 
-app = FastAPI(title="LAN Remote Control", version="1.3.0")
+app = FastAPI(title="LAN Remote Control", version="1.4.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -45,7 +45,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 ICONS_DIR = os.path.join(STATIC_DIR, "icons")
 
-# Virtual cursor coordinates
 virtual_cursor = {"x": 0.5, "y": 0.5, "visible": True}
 is_mouse_down = False
 
@@ -269,6 +268,11 @@ async def get_status():
     return metrics
 
 
+@app.get("/api/system/gpu")
+async def get_gpu():
+    return system_mgr.get_gpu_metrics()
+
+
 @app.get("/api/monitors")
 async def get_monitors():
     return streamer.get_monitors()
@@ -347,11 +351,16 @@ async def run_new_task(req: RunTaskRequest):
 
 
 # ----------------------------------------------------
-# REST API: Clipboard Sync
+# REST API: Clipboard & History
 # ----------------------------------------------------
 @app.get("/api/system/clipboard")
 async def get_clipboard():
     return system_mgr.get_clipboard()
+
+
+@app.get("/api/system/clipboard/history")
+async def get_clipboard_history():
+    return system_mgr.clipboard_history
 
 
 class ClipboardSetRequest(BaseModel):

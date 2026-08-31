@@ -102,7 +102,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Header (Spacious, Non-cramped, No Jitter) */
+/* Header */
 header.app-header {
   background-color: rgba(18, 22, 32, 0.9);
   backdrop-filter: blur(14px);
@@ -486,9 +486,9 @@ canvas#streamCanvas {
 
 /* Dedicated Mobile Mouse Control Bar */
 .mobile-mouse-bar {
-  display: none;
-  gap: 6px;
-  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
   width: 100%;
 }
 
@@ -497,9 +497,9 @@ canvas#streamCanvas {
   background-color: var(--bg-card);
   border: 1px solid var(--border);
   color: var(--text-main);
-  padding: 10px 4px;
+  padding: 12px 6px;
   border-radius: var(--radius-md);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
   text-align: center;
@@ -619,12 +619,20 @@ canvas#streamCanvas {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  padding: 5px 12px;
+  padding: 6px 12px;
   border-radius: var(--radius-sm);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   transition: all 0.15s ease;
+}
+
+.profile-tab-btn img {
+  width: 14px;
+  height: 14px;
 }
 
 .profile-tab-btn.active {
@@ -773,19 +781,20 @@ canvas#streamCanvas {
   gap: 18px;
 }
 
-/* Active Window Strip */
 .active-window-strip {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 8px 14px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-/* Hardware Gauges with Sparkline Graph Canvas */
+/* Hardware Gauges with Sparklines */
 .metrics-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -923,14 +932,41 @@ input[type="range"].volume-slider::-webkit-slider-thumb {
   justify-content: center;
 }
 
-.power-btn-row {
+/* Clean, Non-wrapping Power Actions Layout */
+.power-actions-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 8px;
 }
 
+.power-action-card-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.power-action-card-btn:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.power-action-card-btn img {
+  width: 16px;
+  height: 16px;
+}
+
 /* -------------------------------------------------------------------
-   Windows 11 Task Manager Table
+   Windows 11 Task Manager Table & GPU View
    ------------------------------------------------------------------- */
 .taskmgr-panel {
   background-color: var(--bg-card);
@@ -939,15 +975,44 @@ input[type="range"].volume-slider::-webkit-slider-thumb {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
-.taskmgr-header-bar {
+.taskmgr-top-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.taskmgr-subtabs {
+  display: flex;
+  gap: 6px;
+  background: var(--bg-secondary);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.taskmgr-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.taskmgr-tab-btn.active {
+  background: var(--accent-blue);
+  color: #fff;
 }
 
 .taskmgr-search-box {
@@ -963,14 +1028,14 @@ input[type="range"].volume-slider::-webkit-slider-thumb {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   color: var(--text-main);
-  padding: 6px 10px 6px 30px;
+  padding: 7px 10px 7px 32px;
   border-radius: var(--radius-md);
-  font-size: 0.82rem;
+  font-size: 0.85rem;
 }
 
 .taskmgr-search-box svg {
   position: absolute;
-  left: 8px;
+  left: 10px;
   width: 14px;
   height: 14px;
   color: var(--text-dim);
@@ -1043,31 +1108,48 @@ input[type="range"].volume-slider::-webkit-slider-thumb {
   margin-left: 4px;
 }
 
-/* Clipboard Sync Panel */
-.clipboard-panel {
-  background-color: var(--bg-card);
+/* GPU Dedicated Engines Grid */
+.gpu-engines-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.gpu-engine-card {
+  background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 16px;
+  padding: 14px;
+  border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
+  gap: 6px;
+}
+
+/* Clipboard History 5 Items List */
+.clipboard-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.clipboard-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
   gap: 10px;
 }
 
-.clipboard-row {
-  display: flex;
-  gap: 8px;
-}
-
-.clipboard-input {
+.clipboard-item-text {
   flex: 1;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  color: var(--text-main);
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
-  font-size: 0.85rem;
-  user-select: text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Command Runner */
@@ -1119,7 +1201,7 @@ input[type="range"].volume-slider::-webkit-slider-thumb {
 }
 
 /* -------------------------------------------------------------------
-   Tab 4: Settings & Search (Spacious, Clean Layout)
+   Tab 4: Settings & Search
    ------------------------------------------------------------------- */
 .settings-container {
   display: flex;
@@ -1320,7 +1402,7 @@ input:checked + .slider:before {
   filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.25));
 }
 
-/* QR Code & Mobile Connection Card */
+/* QR Code Card */
 .qr-connection-card {
   display: flex;
   gap: 16px;
@@ -1491,7 +1573,7 @@ input:checked + .slider:before {
 }
 
 /* ===================================================================
-   Mobile Layout & Overflow Fixes
+   Mobile Responsive Layout & Touch Fixes
    ================================----------------------------------- */
 @media (max-width: 768px) {
   header.app-header {
@@ -1551,7 +1633,7 @@ input:checked + .slider:before {
     height: 32px;
   }
   .mobile-mouse-bar {
-    display: flex;
+    display: flex !important;
   }
   .keyboard-drawer {
     bottom: 56px;
@@ -1578,7 +1660,10 @@ input:checked + .slider:before {
   .deck-card-title {
     font-size: 0.75rem;
   }
-  /* Mobile safe settings items without squishing or cutoffs */
+  .power-actions-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  /* Mobile safe settings items */
   .setting-item {
     flex-direction: column;
     align-items: flex-start;

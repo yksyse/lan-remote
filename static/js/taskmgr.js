@@ -1,13 +1,35 @@
-// Windows 11 Style Task Manager Controller for System Tab
+// Windows 11 Style Task Manager Controller with GPU Dedicated Engine View
 const TaskManager = {
+  currentTab: 'procs', // 'procs' or 'gpu'
   processes: [],
+  gpuData: null,
   sortBy: 'cpu',
   searchQuery: '',
-  refreshTimer: null,
   selectedPid: null,
 
   init() {
     this.setupListeners();
+    this.setupSubTabs();
+  },
+
+  setupSubTabs() {
+    document.querySelectorAll('.taskmgr-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (window.SoundEffects) window.SoundEffects.playClick();
+        document.querySelectorAll('.taskmgr-tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.currentTab = btn.dataset.tasktab || 'procs';
+
+        document.getElementById('taskMgrProcsView').style.display = this.currentTab === 'procs' ? 'block' : 'none';
+        document.getElementById('taskMgrGpuView').style.display = this.currentTab === 'gpu' ? 'block' : 'none';
+
+        if (this.currentTab === 'gpu') {
+          this.fetchGpu();
+        } else {
+          this.fetchProcesses();
+        }
+      });
+    });
   },
 
   setupListeners() {
@@ -31,7 +53,8 @@ const TaskManager = {
     if (refreshBtn) {
       refreshBtn.addEventListener('click', () => {
         if (window.SoundEffects) window.SoundEffects.playClick();
-        this.fetchProcesses();
+        if (this.currentTab === 'gpu') this.fetchGpu();
+        else this.fetchProcesses();
       });
     }
 
@@ -47,6 +70,40 @@ const TaskManager = {
       this.processes = await res.json();
       this.renderTable();
     } catch (e) {}
+  },
+
+  async fetchGpu() {
+    try {
+      const res = await fetch('/api/system/gpu');
+      this.gpuData = await res.json();
+      this.renderGpuView();
+    } catch (e) {}
+  },
+
+  renderGpuView() {
+    const d = this.gpuData;
+    if (!d) return;
+
+    const nameEl = document.getElementById('gpuNameLabel');
+    const tempEl = document.getElementById('gpuTempLabel');
+    const usage3dEl = document.getElementById('gpu3dVal');
+    const decodeEl = document.getElementById('gpuDecodeVal');
+    const encodeEl = document.getElementById('gpuEncodeVal');
+    const vramEl = document.getElementById('gpuVramVal');
+    const vramSub = document.getElementById('gpuVramSub');
+
+    if (nameEl) nameEl.textContent = d.name || 'GPU';
+    if (tempEl) tempEl.textContent = `${d.temp || 0}°C`;
+    if (usage3dEl) usage3dEl.textContent = `${d.usage_3d || 0}%`;
+    if (decodeEl) decodeEl.textContent = `${d.usage_decode || 0}%`;
+    if (encodeEl) encodeEl.textContent = `${d.usage_encode || 0}%`;
+    if (vramEl) vramEl.textContent = `${d.mem_percent || 0}%`;
+    if (vramSub) vramSub.textContent = `${d.mem_used_mb || 0} MB / ${d.mem_total_mb || 0} MB`;
+
+    // Draw 3D Engine Sparkline
+    if (d.history && window.SystemManager) {
+      window.SystemManager.drawSparkline('gpuSparkline', d.history, '#8b5cf6');
+    }
   },
 
   renderTable() {

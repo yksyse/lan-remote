@@ -146,25 +146,37 @@
         </div>
       </div>
 
-      <!-- Dedicated Mobile Mouse Control Bar -->
+      <!-- Dedicated Mobile Mouse Control Bar (Visible on touch/mobile) -->
       <div class="mobile-mouse-bar">
         <button id="mobileLmbBtn" class="mouse-action-btn" data-i18n="btn_lmb">ЛКМ (Левая)</button>
-        <button id="mobileDragBtn" class="mouse-action-btn" data-i18n="btn_drag">Зажать (Drag)</button>
+        <button id="mobileDragBtn" class="mouse-action-btn" data-i18n="btn_drag">🔒 Зажать (Drag)</button>
         <button id="mobileRmbBtn" class="mouse-action-btn" data-i18n="btn_rmb">ПКМ (Правая)</button>
       </div>
     </section>
 
-    <!-- TAB 2: TOUCH DECK (WITH CATEGORY PROFILES) -->
+    <!-- TAB 2: TOUCH DECK (WITH CATEGORY PROFILES & SVG ICONS) -->
     <section id="tab-deck" class="tab-pane">
       <div class="deck-header">
         <div class="deck-title" data-i18n="deck_title">Touch Deck</div>
         
-        <!-- Category Profiles Selector -->
+        <!-- Category Profiles Selector with Crisp SVG Icons -->
         <div class="deck-profile-tabs">
-          <button class="profile-tab-btn active" data-profile="all" data-i18n="profile_all">🌟 Все</button>
-          <button class="profile-tab-btn" data-profile="media" data-i18n="profile_media">🛋️ Медиа</button>
-          <button class="profile-tab-btn" data-profile="server" data-i18n="profile_server">🛠️ Сервер</button>
-          <button class="profile-tab-btn" data-profile="gaming" data-i18n="profile_gaming">🎮 Игры</button>
+          <button class="profile-tab-btn active" data-profile="all">
+            <img src="/icons/grid.svg" alt="">
+            <span data-i18n="profile_all">Все</span>
+          </button>
+          <button class="profile-tab-btn" data-profile="media">
+            <img src="/icons/play.svg" alt="">
+            <span data-i18n="profile_media">Медиа</span>
+          </button>
+          <button class="profile-tab-btn" data-profile="server">
+            <img src="/icons/terminal.svg" alt="">
+            <span data-i18n="profile_server">Сервер</span>
+          </button>
+          <button class="profile-tab-btn" data-profile="gaming">
+            <img src="/icons/sliders.svg" alt="">
+            <span data-i18n="profile_gaming">Игры</span>
+          </button>
         </div>
 
         <div class="deck-actions">
@@ -261,36 +273,61 @@
               </div>
             </div>
             <div class="media-btn-row">
-              <button class="btn-secondary" data-media="prev" title="Previous Track"><img src="/icons/restart.svg" style="width:16px;height:16px;transform:rotate(-90deg);" alt="Prev"></button>
-              <button class="btn-primary" data-media="play_pause" title="Play / Pause"><img src="/icons/play.svg" style="width:16px;height:16px;" alt="Play"></button>
-              <button class="btn-secondary" data-media="next" title="Next Track"><img src="/icons/restart.svg" style="width:16px;height:16px;transform:rotate(90deg);" alt="Next"></button>
+              <button class="btn-secondary" data-media="prev" title="Previous Track"><img src="/icons/media_prev.svg" style="width:18px;height:18px;" alt="Prev"></button>
+              <button class="btn-primary" data-media="play_pause" title="Play / Pause"><img src="/icons/play.svg" style="width:18px;height:18px;" alt="Play"></button>
+              <button class="btn-secondary" data-media="next" title="Next Track"><img src="/icons/media_next.svg" style="width:18px;height:18px;" alt="Next"></button>
             </div>
           </div>
 
-          <!-- Power Management Panel -->
+          <!-- Power Management Panel (Spacious Non-wrapping Grid) -->
           <div class="control-panel">
             <div class="control-panel-title">
               <img src="/icons/power.svg" style="width:18px;height:18px;" alt="Power">
               <span data-i18n="power_actions">Power Actions</span>
             </div>
-            <div class="power-btn-row">
-              <button class="btn-secondary" data-power="lock" data-i18n="act_lock">Lock</button>
-              <button class="btn-secondary" data-power="screen_off" data-i18n="act_screen_off">Screen Off</button>
-              <button class="btn-secondary" data-power="sleep" data-i18n="act_sleep">Sleep</button>
-              <button class="btn-secondary" data-power="restart" style="color:var(--accent-yellow);" data-i18n="act_restart">Restart</button>
-              <button class="btn-secondary" data-power="shutdown" style="color:var(--accent-red);" data-i18n="act_shutdown">Shutdown</button>
+            <div class="power-actions-list">
+              <button class="power-action-card-btn" data-power="lock">
+                <img src="/icons/lock.svg" alt="">
+                <span data-i18n="act_lock">Lock</span>
+              </button>
+              <button class="power-action-card-btn" data-power="screen_off">
+                <img src="/icons/desktop.svg" alt="">
+                <span data-i18n="act_screen_off">Screen Off</span>
+              </button>
+              <button class="power-action-card-btn" data-power="sleep">
+                <img src="/icons/moon.svg" alt="">
+                <span data-i18n="act_sleep">Sleep</span>
+              </button>
+              <button class="power-action-card-btn" data-power="restart" style="color:var(--accent-yellow);">
+                <img src="/icons/refresh.svg" alt="">
+                <span data-i18n="act_restart">Restart</span>
+              </button>
+              <button class="power-action-card-btn" data-power="shutdown" style="color:var(--accent-red);">
+                <img src="/icons/power.svg" alt="">
+                <span data-i18n="act_shutdown">Shutdown</span>
+              </button>
             </div>
           </div>
 
         </div>
 
-        <!-- Windows 11 Task Manager (Live Process Explorer) -->
+        <!-- Windows 11 Task Manager (Live Process Explorer & Dedicated GPU View) -->
         <div class="taskmgr-panel">
-          <div class="taskmgr-header-bar">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <img src="/icons/activity.svg" style="width:20px;height:20px;color:var(--accent-blue);" alt="">
+          <div class="taskmgr-top-row">
+            <div style="display:flex;align-items:center;gap:12px;">
               <span style="font-size:1.05rem;font-weight:700;" data-i18n="taskmgr_title">Windows Task Manager</span>
-              <span id="taskMgrCount" style="font-size:0.75rem;color:var(--text-dim);font-family:var(--font-mono);">--</span>
+              
+              <!-- Subtabs: Processes vs GPU Engines -->
+              <div class="taskmgr-subtabs">
+                <button class="taskmgr-tab-btn active" data-tasktab="procs">
+                  <img src="/icons/activity.svg" style="width:14px;height:14px;" alt="">
+                  <span data-i18n="taskmgr_tab_procs">Processes</span>
+                </button>
+                <button class="taskmgr-tab-btn" data-tasktab="gpu">
+                  <img src="/icons/video.svg" style="width:14px;height:14px;" alt="">
+                  <span data-i18n="taskmgr_tab_gpu">GPU & Engines</span>
+                </button>
+              </div>
             </div>
 
             <div style="display:flex;gap:8px;align-items:center;flex:1;justify-content:flex-end;">
@@ -311,8 +348,8 @@
             </div>
           </div>
 
-          <!-- Processes Table -->
-          <div class="taskmgr-table-container">
+          <!-- View 1: Processes Table -->
+          <div id="taskMgrProcsView" class="taskmgr-table-container">
             <table class="taskmgr-table">
               <thead>
                 <tr>
@@ -329,18 +366,59 @@
               </tbody>
             </table>
           </div>
+
+          <!-- View 2: Dedicated GPU Engines (3D, Video Decode, Video Encode, Copy, VRAM) -->
+          <div id="taskMgrGpuView" style="display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div>
+                <strong id="gpuNameLabel" style="font-size:1.1rem;color:var(--text-main);">NVIDIA GPU</strong>
+                <span id="gpuTempLabel" style="font-family:var(--font-mono);font-size:0.85rem;color:var(--accent-yellow);margin-left:8px;">--°C</span>
+              </div>
+            </div>
+
+            <div class="gpu-engines-grid">
+              <div class="gpu-engine-card">
+                <div style="font-size:0.8rem;color:var(--text-muted);font-weight:600;">3D Engine</div>
+                <div id="gpu3dVal" style="font-size:1.5rem;font-weight:700;font-family:var(--font-mono);color:var(--accent-purple);">0%</div>
+                <canvas id="gpuSparkline" class="sparkline-canvas" width="200" height="35"></canvas>
+              </div>
+
+              <div class="gpu-engine-card">
+                <div style="font-size:0.8rem;color:var(--text-muted);font-weight:600;">Video Decode</div>
+                <div id="gpuDecodeVal" style="font-size:1.5rem;font-weight:700;font-family:var(--font-mono);color:var(--accent-blue);">0%</div>
+              </div>
+
+              <div class="gpu-engine-card">
+                <div style="font-size:0.8rem;color:var(--text-muted);font-weight:600;">Video Encode</div>
+                <div id="gpuEncodeVal" style="font-size:1.5rem;font-weight:700;font-family:var(--font-mono);color:var(--accent-green);">0%</div>
+              </div>
+
+              <div class="gpu-engine-card">
+                <div style="font-size:0.8rem;color:var(--text-muted);font-weight:600;">Dedicated VRAM</div>
+                <div id="gpuVramVal" style="font-size:1.5rem;font-weight:700;font-family:var(--font-mono);">0%</div>
+                <div id="gpuVramSub" style="font-size:0.72rem;color:var(--text-dim);font-family:var(--font-mono);">-- MB / -- MB</div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
-        <!-- Clipboard Synchronization Panel -->
+        <!-- Clipboard History & Synchronization Panel (5 Items List) -->
         <div class="clipboard-panel">
           <div class="control-panel-title">
-            <img src="/icons/edit.svg" style="width:18px;height:18px;" alt="">
-            <span data-i18n="clipboard_title">Clipboard Synchronization</span>
+            <img src="/icons/copy.svg" style="width:18px;height:18px;" alt="">
+            <span data-i18n="clipboard_title">Clipboard History (Last 5 Items)</span>
           </div>
+          
           <div class="clipboard-row">
             <input type="text" id="clipboardInput" class="clipboard-input" data-i18n-placeholder="clipboard_placeholder" placeholder="Type text to send to host clipboard...">
             <button id="clipboardSendBtn" class="btn-primary" data-i18n="clipboard_send_btn">Send to Host</button>
             <button id="clipboardGetBtn" class="btn-secondary" data-i18n="clipboard_get_btn">Fetch from Host</button>
+          </div>
+
+          <!-- History items list -->
+          <div id="clipboardHistoryList" class="clipboard-history-list">
+            <!-- Dynamically rendered -->
           </div>
         </div>
 

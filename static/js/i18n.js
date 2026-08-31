@@ -24,7 +24,7 @@ const I18n = {
       monitors_label: "Экран",
       btn_lmb: "ЛКМ (Левая)",
       btn_rmb: "ПКМ (Правая)",
-      btn_drag: "Зажать (Drag)",
+      btn_drag: "🔒 Зажать (Drag)",
       btn_drag_active: "Зажато (Drag)",
       type_text_placeholder: "Введите текст для отправки на ПК...",
       send_btn: "Отправить",
@@ -45,10 +45,10 @@ const I18n = {
 
       // Touch Deck Profiles
       deck_title: "Touch Deck",
-      profile_all: "🌟 Все",
-      profile_media: "🛋️ Медиа",
-      profile_server: "🛠️ Сервер",
-      profile_gaming: "🎮 Игры",
+      profile_all: "Все",
+      profile_media: "Медиа",
+      profile_server: "Сервер",
+      profile_gaming: "Игры",
       card_profile_label: "Профиль категории",
       add_action_btn: "Добавить кнопку",
       edit_card_btn: "Редактировать",
@@ -86,8 +86,10 @@ const I18n = {
       act_shutdown: "Выключение",
       confirm_power: "Вы уверены, что хотите выполнить данное действие питания?",
 
-      // Task Manager (Диспетчер задач)
+      // Task Manager (Диспетчер задач) & GPU
       taskmgr_title: "Диспетчер задач Windows",
+      taskmgr_tab_procs: "Процессы",
+      taskmgr_tab_gpu: "GPU и Ядра",
       tasks_running: "процессов",
       taskmgr_search_placeholder: "Поиск процесса по имени или PID...",
       sort_cpu: "По CPU %",
@@ -108,13 +110,16 @@ const I18n = {
       task_terminated: "Процесс завершен",
       no_processes_found: "Процессы не найдены",
 
-      // Clipboard Sync
-      clipboard_title: "Синхронизация буфера обмена",
+      // Clipboard History Sync
+      clipboard_title: "История буфера обмена (последние 5)",
       clipboard_placeholder: "Вставьте текст для передачи на хост или нажмите Получить...",
       clipboard_send_btn: "Отправить на ПК",
       clipboard_get_btn: "Получить с ПК",
       clipboard_sent_toast: "Текст отправлен в буфер обмена ПК",
       clipboard_got_toast: "Текст получен из буфера обмена ПК",
+      no_clipboard_items: "История буфера обмена пуста",
+      copy_btn: "Копировать",
+      paste_btn: "На ПК",
 
       // Command Runner
       cmd_runner_title: "Удаленное выполнение команд",
@@ -195,7 +200,6 @@ const I18n = {
       setting_port_desc: "HTTP порт веб-панели и стриминга",
       setting_ips_title: "Локальные IP-адреса и QR-код для подключения с телефона:",
       qr_scan_hint: "Отсканируйте камерой телефона для быстрого входа:",
-      copy_btn: "Копировать",
       copied_toast: "URL скопирован в буфер!",
       settings_saved_toast: "Настройки сохранены"
     },
@@ -221,7 +225,7 @@ const I18n = {
       monitors_label: "Display",
       btn_lmb: "LMB (Left)",
       btn_rmb: "RMB (Right)",
-      btn_drag: "Hold Drag",
+      btn_drag: "🔒 Hold Drag",
       btn_drag_active: "Dragging...",
       type_text_placeholder: "Type text to send to host PC...",
       send_btn: "Send",
@@ -242,10 +246,10 @@ const I18n = {
 
       // Touch Deck Profiles
       deck_title: "Touch Deck",
-      profile_all: "🌟 All",
-      profile_media: "🛋️ Media",
-      profile_server: "🛠️ Server",
-      profile_gaming: "🎮 Gaming",
+      profile_all: "All",
+      profile_media: "Media",
+      profile_server: "Server",
+      profile_gaming: "Gaming",
       card_profile_label: "Category Profile",
       add_action_btn: "Add Action",
       edit_card_btn: "Edit",
@@ -285,6 +289,8 @@ const I18n = {
 
       // Task Manager
       taskmgr_title: "Windows Task Manager",
+      taskmgr_tab_procs: "Processes",
+      taskmgr_tab_gpu: "GPU & Engines",
       tasks_running: "tasks running",
       taskmgr_search_placeholder: "Search process by name or PID...",
       sort_cpu: "By CPU %",
@@ -305,13 +311,16 @@ const I18n = {
       task_terminated: "Process terminated",
       no_processes_found: "No processes found",
 
-      // Clipboard Sync
-      clipboard_title: "Clipboard Synchronization",
+      // Clipboard History Sync
+      clipboard_title: "Clipboard History (Last 5 Items)",
       clipboard_placeholder: "Type text to send to host or click Fetch...",
       clipboard_send_btn: "Send to Host",
       clipboard_get_btn: "Fetch from Host",
       clipboard_sent_toast: "Text sent to host clipboard",
       clipboard_got_toast: "Text fetched from host clipboard",
+      no_clipboard_items: "No clipboard items yet",
+      copy_btn: "Copy",
+      paste_btn: "Host",
 
       // Command Runner
       cmd_runner_title: "Remote Command Execution",
@@ -392,7 +401,6 @@ const I18n = {
       setting_port_desc: "HTTP port for web dashboard and streaming",
       setting_ips_title: "Active Network IP Addresses & Mobile QR Code:",
       qr_scan_hint: "Scan with phone camera to connect instantly:",
-      copy_btn: "Copy",
       copied_toast: "URL copied to clipboard!",
       settings_saved_toast: "Settings saved"
     },
@@ -418,7 +426,7 @@ const I18n = {
       monitors_label: "Bildschirm",
       btn_lmb: "LMT (Links)",
       btn_rmb: "RMT (Rechts)",
-      btn_drag: "Ziehen (Drag)",
+      btn_drag: "🔒 Ziehen (Drag)",
       btn_drag_active: "Gezogen (Drag)",
       type_text_placeholder: "Text eingeben und an PC senden...",
       send_btn: "Senden",
@@ -439,10 +447,10 @@ const I18n = {
 
       // Touch Deck Profiles
       deck_title: "Touch Deck",
-      profile_all: "🌟 Alle",
-      profile_media: "🛋️ Medien",
-      profile_server: "🛠️ Server",
-      profile_gaming: "🎮 Gaming",
+      profile_all: "Alle",
+      profile_media: "Medien",
+      profile_server: "Server",
+      profile_gaming: "Gaming",
       card_profile_label: "Kategorie-Profil",
       add_action_btn: "Aktion hinzufügen",
       edit_card_btn: "Bearbeiten",
@@ -480,8 +488,10 @@ const I18n = {
       act_shutdown: "Herunterfahren",
       confirm_power: "Möchten Sie diese Energieaktion wirklich ausführen?",
 
-      // Task Manager
+      // Task Manager & GPU
       taskmgr_title: "Windows Task-Manager",
+      taskmgr_tab_procs: "Prozesse",
+      taskmgr_tab_gpu: "GPU & Kerne",
       tasks_running: "Aufgaben aktiv",
       taskmgr_search_placeholder: "Prozess nach Name oder PID suchen...",
       sort_cpu: "Nach CPU %",
@@ -502,13 +512,16 @@ const I18n = {
       task_terminated: "Prozess beendet",
       no_processes_found: "Keine Prozesse gefunden",
 
-      // Clipboard Sync
-      clipboard_title: "Zwischenablage synchronisieren",
+      // Clipboard History Sync
+      clipboard_title: "Zwischenablage-Verlauf (Letzte 5)",
       clipboard_placeholder: "Text eingeben zum Senden oder Abrufen klicken...",
       clipboard_send_btn: "An Host senden",
       clipboard_get_btn: "Vom Host abrufen",
       clipboard_sent_toast: "Text in Host-Zwischenablage kopiert",
       clipboard_got_toast: "Text aus Host-Zwischenablage abgerufen",
+      no_clipboard_items: "Zwischenablage ist leer",
+      copy_btn: "Kopieren",
+      paste_btn: "Host",
 
       // Command Runner
       cmd_runner_title: "Remote-Befehlsausführung",
@@ -567,7 +580,7 @@ const I18n = {
       setting_sens_desc: "Multiplikator für Fingerbewegungsgeschwindigkeit",
       sens_slow: "0.8x (Langsam & Präzise)",
       sens_norm: "1.0x (Normal)",
-      sens_fast: "1.3x (Schnell)",
+      sens_fast: "1.3x (Fast)",
       sens_vfast: "1.8x (Sehr schnell)",
 
       setting_invert_scroll_title: "2-Finger-Scrollen umkehren",
@@ -589,7 +602,6 @@ const I18n = {
       setting_port_desc: "HTTP-Port für Web-Dashboard und Streaming",
       setting_ips_title: "Aktive IP-Adressen & Mobiler QR-Code:",
       qr_scan_hint: "Mit der Handykamera scannen, um sich sofort zu verbinden:",
-      copy_btn: "Kopieren",
       copied_toast: "URL in die Zwischenablage kopiert!",
       settings_saved_toast: "Einstellungen gespeichert"
     }

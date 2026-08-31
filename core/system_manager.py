@@ -8,7 +8,6 @@ import time
 from typing import Any, Dict, List, Optional
 import psutil
 
-# Windows COM & Audio dependencies
 try:
     from comtypes import CLSCTX_ALL
     from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
@@ -31,7 +30,7 @@ kernel32 = ctypes.windll.kernel32
 
 
 class SystemManager:
-    """Manages host performance, Windows 11 Task Manager processes, clipboard, and power."""
+    """Manages host performance, GPU metrics, Task Manager, and clipboard history."""
 
     def __init__(self):
         self._volume_endpoint = None
@@ -42,8 +41,15 @@ class SystemManager:
         self.ram_history = collections.deque(
             [0.0] * self.history_len, maxlen=self.history_len
         )
+        self.gpu_history = collections.deque(
+            [0.0] * self.history_len, maxlen=self.history_len
+        )
+
+        # Clipboard history (Last 5 unique items)
+        self.clipboard_history: List[Dict[str, Any]] = []
+        self._last_clipboard_text = ""
+
         self._init_audio()
-        # Prime psutil CPU monitoring
         psutil.cpu_percent(interval=None)
 
     def _init_audio(self):
@@ -96,7 +102,6 @@ class SystemManager:
         return False
 
     def get_active_window(self) -> Dict[str, str]:
-        """Get the title and executable name of the current foreground window."""
         if not win32_available:
             return {"title": "Desktop", "process": "explorer.exe"}
         try:
@@ -112,12 +117,68 @@ class SystemManager:
         except Exception:
             return {"title": "Desktop", "process": "explorer.exe"}
 
+    # ----------------------------------------------------
+    # Dedicated GPU Metrics & Engine Utilization
+    # ----------------------------------------------------
+    def get_gpu_metrics(self) -> Dict[str, Any]:
+        gpu_data = {
+            "available": True,
+            "name": "GPU",
+            "usage_3d": 0,
+            "usage_encode": 0,
+            "usage_decode": 0,
+            "usage_copy": 0,
+            "mem_used_mb": 0,
+            "mem_total_mb": 0,
+            "mem_percent": 0,
+            "temp": 0,
+            "history": list(self.gpu_history),
+        }
+        try:
+            out = subprocess.check_output(
+                [
+                    "nvidia-smi",
+                    (
+                        "--query-gpu=name,utilization.gpu,utilization.memory,memory.total,memory.used,temperature.gpu,utilization.encoder,utilization.decoder"
+                    ),
+                    "--format=csv,noheader,nounits",
+                ],
+                encoding="utf-8",
+                timeout=1.0,
+            )
+            parts = [p.strip() for p in out.strip().split(",")]
+            if len(parts) >= 8:
+                gpu_data["name"] = parts[0]
+                gpu_data["usage_3d"] = int(parts[1])
+                gpu_data["mem_percent"] = (
+                    round(int(parts[4]) / int(parts[3]) * 100, 1)
+                    if int(parts[3]) > 0
+                    else 0
+                )
+                gpu_data["mem_total_mb"] = int(parts[3])
+                gpu_data["mem_used_mb"] = int(parts[4])
+                gpu_data["temp"] = int(parts[5])
+                gpu_data["usage_encode"] = int(parts[6])
+                gpu_data["usage_decode"] = int(parts[7])
+                self.gpu_history.append(float(gpu_data["usage_3d"]))
+                gpu_data["history"] = list(self.gpu_history)
+                return gpu_data
+        except Exception:
+            pass
+
+        # Fallback if nvidia-smi unavailable
+        gpu_data["available"] = False
+        return gpu_data
+
     def get_metrics(self) -> Dict[str, Any]:
         cpu_p = psutil.cpu_percent(interval=None)
         mem = psutil.virtual_memory()
 
         self.cpu_history.append(round(cpu_p, 1))
         self.ram_history.append(round(mem.percent, 1))
+
+        # Check for new clipboard items
+        self._check_clipboard_update()
 
         disks = []
         for part in psutil.disk_partitions(all=False):
@@ -152,6 +213,7 @@ class SystemManager:
                 "total_gb": round(mem.total / (1024**3), 2),
                 "history": list(self.ram_history),
             },
+            "gpu": self.get_gpu_metrics(),
             "disks": disks,
             "volume": vol,
             "muted": muted,
@@ -160,6 +222,7 @@ class SystemManager:
             "os": f"{platform.system()} {platform.release()}",
             "local_ips": self.get_local_ips(),
             "active_window": self.get_active_window(),
+            "clipboard_history": self.clipboard_history,
         }
 
     # ----------------------------------------------------
@@ -279,8 +342,37 @@ class SystemManager:
             return {"status": "error", "detail": str(e)}
 
     # ----------------------------------------------------
-    # Windows Clipboard Sync
+    # Windows Clipboard & 5-item History Management
     # ----------------------------------------------------
+    def _check_clipboard_update(self):
+        try:
+            clip = self.get_clipboard()
+            text = clip.get("text", "").strip()
+            if text and text != self._last_clipboard_text:
+                self._last_clipboard_text = text
+                # Avoid duplicates
+                self.clipboard_history = [
+                    item
+                    for item in self.clipboard_history
+                    if item["text"] != text
+                ]
+                now_str = time.strftime("%H:%M:%S")
+                self.clipboard_history.insert(
+                    0,
+                    {
+                        "id": int(time.time() * 1000),
+                        "text": text,
+                        "time": now_str,
+                        "preview": (
+                            text[:90] + "..." if len(text) > 90 else text
+                        ),
+                    },
+                )
+                if len(self.clipboard_history) > 5:
+                    self.clipboard_history.pop()
+        except Exception:
+            pass
+
     def get_clipboard(self) -> Dict[str, str]:
         if not win32_available:
             return {"status": "error", "text": ""}
@@ -318,6 +410,7 @@ class SystemManager:
                 win32clipboard.CF_UNICODETEXT, str(text)
             )
             win32clipboard.CloseClipboard()
+            self._check_clipboard_update()
             return {"status": "ok"}
         except Exception as e:
             try:

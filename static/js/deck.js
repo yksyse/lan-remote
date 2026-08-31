@@ -55,8 +55,20 @@ const DeckManager = {
     if (!grid || !App.config?.deck) return;
 
     let cards = App.config.deck.cards || [];
+    
+    // Filter by Active Profile
     if (this.activeProfile !== 'all') {
-      cards = cards.filter(c => !c.profile || c.profile === 'all' || c.profile === this.activeProfile);
+      cards = cards.filter(c => {
+        const cardProf = (c.profile || 'all').toLowerCase();
+        if (cardProf === this.activeProfile) return true;
+        // Automatic category fallback if profile is not set
+        if (!c.profile || c.profile === 'all') {
+          if (this.activeProfile === 'media' && (c.type === 'media' || c.icon.includes('volume') || c.icon.includes('play'))) return true;
+          if (this.activeProfile === 'server' && (c.type === 'power' || c.type === 'command' || c.icon.includes('activity') || c.icon.includes('terminal'))) return true;
+          if (this.activeProfile === 'gaming' && (c.icon.includes('mic') || c.icon.includes('video'))) return true;
+        }
+        return false;
+      });
     }
 
     grid.innerHTML = '';

@@ -1,4 +1,4 @@
-// Host System Monitor, Sparklines & Media Controls
+// Host System Monitor, Sparklines, Clipboard History & Media Controls
 const SystemManager = {
   isUpdatingVolume: false,
 
@@ -12,7 +12,10 @@ const SystemManager = {
 
   update() {
     App.fetchStatus();
-    if (window.TaskManager) window.TaskManager.fetchProcesses();
+    if (window.TaskManager) {
+      if (window.TaskManager.currentTab === 'gpu') window.TaskManager.fetchGpu();
+      else window.TaskManager.fetchProcesses();
+    }
   },
 
   drawSparkline(canvasId, data, color) {
@@ -49,12 +52,10 @@ const SystemManager = {
       }
     });
 
-    // Stroke
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Fill Gradient
     ctx.lineTo(w, h);
     ctx.lineTo(0, h);
     ctx.closePath();
@@ -126,6 +127,11 @@ const SystemManager = {
       });
     }
 
+    // Clipboard History (Last 5 items)
+    if (data.clipboard_history) {
+      this.renderClipboardHistory(data.clipboard_history);
+    }
+
     // System Info
     const hostEl = document.getElementById('sysHostInfo');
     if (hostEl) {
@@ -142,6 +148,64 @@ const SystemManager = {
       if (volLabel && data.volume !== undefined) volLabel.textContent = `${data.volume}%`;
       if (window.VolumeKnob && data.volume !== undefined) window.VolumeKnob.setValue(data.volume);
       if (muteBtn && data.muted !== undefined) muteBtn.classList.toggle('active', data.muted);
+    }
+  },
+
+  renderClipboardHistory(history) {
+    const list = document.getElementById('clipboardHistoryList');
+    if (!list) return;
+
+    if (!history || history.length === 0) {
+      list.innerHTML = `<div style="font-size:0.75rem;color:var(--text-dim);padding:8px 0;">${I18n.t('no_clipboard_items') || 'No clipboard items yet'}</div>`;
+      return;
+    }
+
+    list.innerHTML = '';
+    history.forEach((item, idx) => {
+      const row = document.createElement('div');
+      row.className = 'clipboard-history-item';
+      row.innerHTML = `
+        <div class="clipboard-item-text">
+          <span style="color:var(--accent-blue);font-weight:700;margin-right:6px;">#${idx + 1}</span>
+          <span style="user-select:text;">${item.preview}</span>
+          <span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-dim);margin-left:8px;">${item.time}</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn-secondary" style="padding:4px 8px;font-size:0.72rem;" onclick="SystemManager.copySnippet('${encodeURIComponent(item.text)}')">
+            <img src="/icons/copy.svg" style="width:12px;height:12px;" alt=""> ${I18n.t('copy_btn') || 'Copy'}
+          </button>
+          <button class="btn-primary" style="padding:4px 8px;font-size:0.72rem;" onclick="SystemManager.pasteToHost('${encodeURIComponent(item.text)}')">
+            ⬆ ${I18n.t('paste_btn') || 'Host'}
+          </button>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+  },
+
+  async copySnippet(encodedText) {
+    const text = decodeURIComponent(encodedText);
+    try {
+      await navigator.clipboard.writeText(text);
+      if (window.SoundEffects) window.SoundEffects.playSuccess();
+      App.showToast(I18n.t('copied_toast') || 'Copied to clipboard', 'success');
+    } catch (e) {
+      App.showToast('Error copying text', 'error');
+    }
+  },
+
+  async pasteToHost(encodedText) {
+    const text = decodeURIComponent(encodedText);
+    try {
+      await fetch('/api/system/clipboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text })
+      });
+      if (window.SoundEffects) window.SoundEffects.playSuccess();
+      App.showToast('Copied to host clipboard!', 'success');
+    } catch (e) {
+      App.showToast('Error sending to host', 'error');
     }
   },
 
@@ -247,8 +311,10 @@ const SystemManager = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: text })
           });
+          input.value = '';
           if (window.SoundEffects) window.SoundEffects.playSuccess();
           App.showToast(I18n.t('clipboard_sent_toast') || 'Text sent to host clipboard', 'success');
+          App.fetchStatus();
         } catch (e) {
           App.showToast('Error sending clipboard', 'error');
         }
