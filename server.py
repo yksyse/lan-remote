@@ -84,6 +84,13 @@ async def websocket_stream(websocket: WebSocket):
     streamer.active_sockets.add(websocket)
     last_sent_time = 0.0
 
+    if streamer.latest_frame_bytes:
+        try:
+            await websocket.send_bytes(streamer.latest_frame_bytes)
+            last_sent_time = streamer.latest_frame_time
+        except Exception:
+            pass
+
     async def receive_controls():
         try:
             while True:
@@ -114,9 +121,11 @@ async def websocket_stream(websocket: WebSocket):
                         cfg_mgr.update_section(
                             "stream", {"monitor_index": mon_idx}
                         )
-                except Exception as e:
-                    logger.error(f"Error handling stream control packet: {e}")
+                except Exception:
+                    pass
         except (WebSocketDisconnect, asyncio.CancelledError):
+            pass
+        except Exception:
             pass
 
     recv_task = asyncio.create_task(receive_controls())
@@ -131,12 +140,12 @@ async def websocket_stream(websocket: WebSocket):
                     last_sent_time = frame_time
                     await websocket.send_bytes(frame_bytes)
 
-            fps = streamer.fps
+            fps = max(10, streamer.fps)
             await asyncio.sleep(1.0 / (fps * 1.5))
-    except (WebSocketDisconnect, asyncio.CancelledError):
+    except (WebSocketDisconnect, asyncio.CancelledError, RuntimeError):
         pass
-    except Exception as e:
-        logger.error(f"Stream error: {e}")
+    except Exception:
+        pass
     finally:
         recv_task.cancel()
         streamer.active_sockets.discard(websocket)

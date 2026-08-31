@@ -95,23 +95,39 @@ const StreamManager = {
         return;
       }
 
-      // Binary Blob -> ImageBitmap for GPU texture upload
+      // Binary Blob -> ImageBitmap with Image fallback for universal device support
       try {
-        const bmp = await createImageBitmap(event.data);
-        if (this.canvas.width !== bmp.width || this.canvas.height !== bmp.height) {
-          this.canvas.width = bmp.width;
-          this.canvas.height = bmp.height;
+        const blob = event.data instanceof Blob ? event.data : new Blob([event.data], { type: 'image/jpeg' });
+        if (window.createImageBitmap) {
+          const bmp = await createImageBitmap(blob);
+          if (this.canvas.width !== bmp.width || this.canvas.height !== bmp.height) {
+            this.canvas.width = bmp.width;
+            this.canvas.height = bmp.height;
+          }
+          this.ctx.drawImage(bmp, 0, 0);
+          if (this.cursorMode === 'virtual') {
+            this.drawVirtualCursor();
+          }
+          bmp.close();
+        } else {
+          const url = URL.createObjectURL(blob);
+          const img = new Image();
+          img.onload = () => {
+            if (this.canvas.width !== img.width || this.canvas.height !== img.height) {
+              this.canvas.width = img.width;
+              this.canvas.height = img.height;
+            }
+            this.ctx.drawImage(img, 0, 0);
+            if (this.cursorMode === 'virtual') {
+              this.drawVirtualCursor();
+            }
+            URL.revokeObjectURL(url);
+          };
+          img.src = url;
         }
-
-        this.ctx.drawImage(bmp, 0, 0);
-
-        // Render visual pointer in Virtual mode
-        if (this.cursorMode === 'virtual') {
-          this.drawVirtualCursor();
-        }
-
-        bmp.close();
-      } catch (err) {}
+      } catch (err) {
+        console.error('Frame render error:', err);
+      }
     };
 
     this.ws.onclose = () => {

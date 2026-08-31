@@ -432,9 +432,9 @@ class SystemManager:
         # Add User shortcuts
         user_profile = os.environ.get("USERPROFILE", "")
         if user_profile:
-            drives.insert(0, {"path": os.path.join(user_profile, "Desktop"), "label": "📁 Desktop"})
-            drives.insert(1, {"path": os.path.join(user_profile, "Downloads"), "label": "⬇ Downloads"})
-            drives.insert(2, {"path": os.path.join(user_profile, "Documents"), "label": "📄 Documents"})
+            drives.insert(0, {"path": os.path.join(user_profile, "Desktop"), "label": "Desktop"})
+            drives.insert(1, {"path": os.path.join(user_profile, "Downloads"), "label": "Downloads"})
+            drives.insert(2, {"path": os.path.join(user_profile, "Documents"), "label": "Documents"})
         return drives
 
     def list_directory(self, target_path: Optional[str] = None) -> Dict[str, Any]:

@@ -1,3 +1,4 @@
+import collections
 import ctypes
 from ctypes import wintypes
 import logging
@@ -13,6 +14,7 @@ logger = logging.getLogger("ScreenStreamer")
 
 user32 = ctypes.windll.user32
 
+
 class CURSORINFO(ctypes.Structure):
     _fields_ = [
         ("cbSize", wintypes.DWORD),
@@ -20,6 +22,7 @@ class CURSORINFO(ctypes.Structure):
         ("hCursor", wintypes.HANDLE),
         ("ptScreenPos", wintypes.POINT),
     ]
+
 
 class ScreenStreamer:
     """High-performance Windows screen capture engine with pause/standby zero-resource mode."""
@@ -110,7 +113,13 @@ class ScreenStreamer:
                     })
         except Exception as e:
             logger.error(f"Error fetching monitors: {e}")
-        return monitors_info or [{"id": 1, "name": "Display 1 (1920x1080)", "width": 1920, "height": 1080, "is_primary": True}]
+        return monitors_info or [{
+            "id": 1,
+            "name": "Display 1 (1920x1080)",
+            "width": 1920,
+            "height": 1080,
+            "is_primary": True,
+        }]
 
     def _get_cursor_pos(self) -> tuple[int, int, bool]:
         try:
@@ -135,8 +144,8 @@ class ScreenStreamer:
         with mss.mss() as sct:
             self._sct = sct
             while self.running:
-                # Standby / Zero resource mode: sleep when paused or no viewers
-                if self.is_paused or len(self.active_sockets) == 0:
+                # Standby: sleep when explicitly paused
+                if self.is_paused:
                     time.sleep(0.15)
                     continue
 
@@ -144,16 +153,20 @@ class ScreenStreamer:
 
                 try:
                     num_monitors = len(sct.monitors) - 1
-                    target_mon_idx = min(self.monitor_index, num_monitors) if num_monitors > 0 else 1
+                    target_mon_idx = (
+                        min(self.monitor_index, num_monitors)
+                        if num_monitors > 0
+                        else 1
+                    )
                     monitor = sct.monitors[target_mon_idx]
 
                     self.original_width = monitor["width"]
                     self.original_height = monitor["height"]
 
                     sct_img = sct.grab(monitor)
-                    img_np = np.frombuffer(sct_img.bgra, dtype=np.uint8).reshape(
-                        (sct_img.height, sct_img.width, 4)
-                    )
+                    img_np = np.frombuffer(
+                        sct_img.bgra, dtype=np.uint8
+                    ).reshape((sct_img.height, sct_img.width, 4))
                     frame_bgr = cv2.cvtColor(img_np, cv2.COLOR_BGRA2BGR)
                     t_cap = time.perf_counter()
                     self.capture_time_ms = (t_cap - t0) * 1000.0
@@ -163,30 +176,80 @@ class ScreenStreamer:
                     if cursor_visible:
                         rel_x = cx - monitor["left"]
                         rel_y = cy - monitor["top"]
-                        if 0 <= rel_x < monitor["width"] and 0 <= rel_y < monitor["height"]:
-                            arrow_pts = np.array([
-                                [rel_x, rel_y],
-                                [rel_x, min(monitor["height"] - 1, rel_y + 16)],
-                                [min(monitor["width"] - 1, rel_x + 4), min(monitor["height"] - 1, rel_y + 12)],
-                                [min(monitor["width"] - 1, rel_x + 8), min(monitor["height"] - 1, rel_y + 18)],
-                                [min(monitor["width"] - 1, rel_x + 11), min(monitor["height"] - 1, rel_y + 17)],
-                                [min(monitor["width"] - 1, rel_x + 7), min(monitor["height"] - 1, rel_y + 11)],
-                                [min(monitor["width"] - 1, rel_x + 12), min(monitor["height"] - 1, rel_y + 11)],
-                            ], dtype=np.int32)
-                            cv2.fillPoly(frame_bgr, [arrow_pts], (255, 255, 255))
-                            cv2.polylines(frame_bgr, [arrow_pts], isClosed=True, color=(0, 0, 0), thickness=2)
+                        if (
+                            0 <= rel_x < monitor["width"]
+                            and 0 <= rel_y < monitor["height"]
+                        ):
+                            arrow_pts = np.array(
+                                [
+                                    [rel_x, rel_y],
+                                    [
+                                        rel_x,
+                                        min(
+                                            monitor["height"] - 1, rel_y + 16
+                                        ),
+                                    ],
+                                    [
+                                        min(monitor["width"] - 1, rel_x + 4),
+                                        min(
+                                            monitor["height"] - 1, rel_y + 12
+                                        ),
+                                    ],
+                                    [
+                                        min(monitor["width"] - 1, rel_x + 8),
+                                        min(
+                                            monitor["height"] - 1, rel_y + 18
+                                        ),
+                                    ],
+                                    [
+                                        min(monitor["width"] - 1, rel_x + 11),
+                                        min(
+                                            monitor["height"] - 1, rel_y + 17
+                                        ),
+                                    ],
+                                    [
+                                        min(monitor["width"] - 1, rel_x + 7),
+                                        min(
+                                            monitor["height"] - 1, rel_y + 11
+                                        ),
+                                    ],
+                                    [
+                                        min(monitor["width"] - 1, rel_x + 12),
+                                        min(
+                                            monitor["height"] - 1, rel_y + 11
+                                        ),
+                                    ],
+                                ],
+                                dtype=np.int32,
+                            )
+                            cv2.fillPoly(
+                                frame_bgr, [arrow_pts], (255, 255, 255)
+                            )
+                            cv2.polylines(
+                                frame_bgr,
+                                [arrow_pts],
+                                isClosed=True,
+                                color=(0, 0, 0),
+                                thickness=2,
+                            )
 
                     # Downscale resolution if requested
                     if self.scale < 1.0:
                         new_w = int(monitor["width"] * self.scale)
                         new_h = int(monitor["height"] * self.scale)
-                        frame_bgr = cv2.resize(frame_bgr, (new_w, new_h), interpolation=cv2.INTER_AREA)
+                        frame_bgr = cv2.resize(
+                            frame_bgr,
+                            (new_w, new_h),
+                            interpolation=cv2.INTER_AREA,
+                        )
 
                     self.frame_width = frame_bgr.shape[1]
                     self.frame_height = frame_bgr.shape[0]
 
                     encode_params[1] = self.quality
-                    success, buffer = cv2.imencode(".jpg", frame_bgr, encode_params)
+                    success, buffer = cv2.imencode(
+                        ".jpg", frame_bgr, encode_params
+                    )
                     t_enc = time.perf_counter()
                     self.encode_time_ms = (t_enc - t_cap) * 1000.0
 
@@ -210,5 +273,5 @@ class ScreenStreamer:
                 sleep_time = max(0.001, target_dt - elapsed)
                 time.sleep(sleep_time)
 
-import collections
+
 streamer = ScreenStreamer()

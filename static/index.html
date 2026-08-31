@@ -34,9 +34,9 @@
     <!-- Language Selector Dropdown in Header -->
     <div class="lang-selector">
       <select class="lang-selector-select">
-        <option value="ru">🇷🇺 Русский</option>
-        <option value="en">🇬🇧 English</option>
-        <option value="de">🇩🇪 Deutsch</option>
+        <option value="ru">RU • Русский</option>
+        <option value="en">EN • English</option>
+        <option value="de">DE • Deutsch</option>
       </select>
     </div>
 
@@ -107,7 +107,7 @@
             <img src="/icons/mouse.svg" alt="Touch Mode">
           </button>
           <button id="toggleDragBtn" class="tool-btn" data-i18n-title="btn_drag" title="Hold Drag">
-            <img src="/icons/refresh.svg" style="transform:rotate(45deg);" alt="Drag">
+            <img src="/icons/lock.svg" alt="Drag">
           </button>
           <button id="toggleCursorModeBtn" class="tool-btn" data-i18n-title="cursor_mode_btn" title="Toggle Mouse Mode (Physical / Virtual)">
             <img src="/icons/sliders.svg" alt="Cursor Mode">
@@ -184,7 +184,10 @@
       <!-- Dedicated Mobile Mouse Control Bar -->
       <div class="mobile-mouse-bar">
         <button id="mobileLmbBtn" class="mouse-action-btn" data-i18n="btn_lmb">ЛКМ (Левая)</button>
-        <button id="mobileDragBtn" class="mouse-action-btn" data-i18n="btn_drag">🔒 Зажать (Drag)</button>
+        <button id="mobileDragBtn" class="mouse-action-btn">
+          <img src="/icons/lock.svg" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;" alt="">
+          <span data-i18n="btn_drag">Зажать (Drag)</span>
+        </button>
         <button id="mobileRmbBtn" class="mouse-action-btn" data-i18n="btn_rmb">ПКМ (Правая)</button>
       </div>
     </section>
@@ -447,9 +450,17 @@
             </div>
             <div style="display:flex;gap:6px;">
               <input type="file" id="fsUploadInput" style="display:none;">
-              <button id="fsUploadBtn" class="btn-primary" style="padding:4px 10px;font-size:0.75rem;">⬆ Загрузить на ПК</button>
-              <button id="fsUpBtn" class="btn-secondary" style="padding:4px 10px;font-size:0.75rem;">📁 Вверх</button>
-              <button id="fsRefreshBtn" class="btn-secondary" style="padding:4px 8px;font-size:0.75rem;">🔄</button>
+              <button id="fsUploadBtn" class="btn-primary" style="padding:4px 10px;font-size:0.75rem;">
+                <img src="/icons/upload.svg" style="width:13px;height:13px;margin-right:4px;" alt="">
+                <span>Загрузить на ПК</span>
+              </button>
+              <button id="fsUpBtn" class="btn-secondary" style="padding:4px 10px;font-size:0.75rem;">
+                <img src="/icons/folder.svg" style="width:13px;height:13px;margin-right:4px;" alt="">
+                <span>Вверх</span>
+              </button>
+              <button id="fsRefreshBtn" class="btn-secondary" style="padding:4px 8px;font-size:0.75rem;">
+                <img src="/icons/refresh.svg" style="width:13px;height:13px;" alt="">
+              </button>
             </div>
           </div>
 
@@ -563,9 +574,9 @@
             </div>
             <div class="setting-control">
               <select class="setting-select lang-selector-select">
-                <option value="ru">🇷🇺 Русский</option>
-                <option value="en">🇬🇧 English</option>
-                <option value="de">🇩🇪 Deutsch</option>
+                <option value="ru">RU • Русский</option>
+                <option value="en">EN • English</option>
+                <option value="de">DE • Deutsch</option>
               </select>
             </div>
           </div>
@@ -803,10 +814,10 @@
       <div class="form-group">
         <label class="form-label" data-i18n="card_profile_label">Category Profile</label>
         <select id="modalCardProfile" class="form-select">
-          <option value="all" data-i18n="profile_all">🌟 Все</option>
-          <option value="media" data-i18n="profile_media">🛋️ Медиа</option>
-          <option value="server" data-i18n="profile_server">🛠️ Сервер</option>
-          <option value="gaming" data-i18n="profile_gaming">🎮 Игры</option>
+          <option value="all" data-i18n="profile_all">Все (All)</option>
+          <option value="media" data-i18n="profile_media">Медиа (Media)</option>
+          <option value="server" data-i18n="profile_server">Сервер (Server)</option>
+          <option value="gaming" data-i18n="profile_gaming">Игры (Gaming)</option>
         </select>
       </div>
 
