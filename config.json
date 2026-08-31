@@ -8,9 +8,9 @@
   },
   "stream": {
     "fps": 90,
-    "quality": 65,
+    "quality": 45,
     "scale": 0.75,
-    "monitor_index": 1
+    "monitor_index": 2
   },
   "input": {
     "mode": "trackpad",
