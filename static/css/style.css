@@ -29,14 +29,46 @@
   --font-mono: "Cascadia Code", "Fira Code", Consolas, monospace;
 }
 
+/* Cyberpunk Neon Theme */
+[data-theme="cyberpunk"] {
+  --bg-primary: #08070d;
+  --bg-secondary: #100e1c;
+  --bg-tertiary: #1b172e;
+  --bg-card: #141124;
+  --border: #2d244c;
+  --accent-blue: #00f0ff;
+  --accent-purple: #ff007f;
+  --accent-green: #00ff66;
+  --text-main: #f8fafc;
+}
+
+/* Obsidian Slate Theme */
+[data-theme="slate"] {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-card: #1e293b;
+  --border: #334155;
+  --accent-blue: #38bdf8;
+  --text-main: #f1f5f9;
+}
+
+/* Glassmorphism Theme */
+[data-theme="glass"] {
+  --bg-primary: #06080e;
+  --bg-secondary: rgba(18, 24, 38, 0.65);
+  --bg-tertiary: rgba(30, 41, 59, 0.6);
+  --bg-card: rgba(21, 28, 44, 0.7);
+  --border: rgba(255, 255, 255, 0.12);
+  --text-main: #ffffff;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
-  overflow-wrap: anywhere;
-  word-break: break-word;
 }
 
 /* Custom Sleek Dark Scrollbars */
@@ -70,15 +102,14 @@ body {
   overflow-x: hidden;
 }
 
-/* Stable Header (No Jumping / Jitter) */
+/* Header (Spacious, Non-cramped, No Jitter) */
 header.app-header {
   background-color: rgba(18, 22, 32, 0.9);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
   padding: 0 16px;
-  height: 52px;
-  min-height: 52px;
-  max-height: 52px;
+  height: 54px;
+  min-height: 54px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -94,8 +125,8 @@ header.app-header {
   gap: 10px;
   font-weight: 700;
   font-size: 1.05rem;
-  letter-spacing: -0.5px;
-  flex: 0 0 165px;
+  letter-spacing: -0.3px;
+  flex-shrink: 0;
 }
 
 .brand-icon {
@@ -109,16 +140,15 @@ header.app-header {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   background-color: rgba(16, 185, 129, 0.1);
   color: var(--accent-green);
   border: 1px solid rgba(16, 185, 129, 0.25);
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: var(--radius-full);
-  flex: 0 0 145px;
-  min-width: 145px;
+  flex-shrink: 0;
 }
 
 .status-dot {
@@ -139,19 +169,18 @@ header.app-header {
 .lang-selector {
   display: flex;
   align-items: center;
-  flex: 0 0 115px;
+  flex-shrink: 0;
 }
 
 .lang-selector select {
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
   color: var(--text-main);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  padding: 4px 8px;
+  padding: 5px 8px;
   border-radius: var(--radius-md);
   cursor: pointer;
-  width: 100%;
 }
 
 .lang-selector select:focus {
@@ -174,8 +203,8 @@ nav.nav-tabs {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  padding: 5px 12px;
-  font-size: 0.82rem;
+  padding: 6px 14px;
+  font-size: 0.85rem;
   font-weight: 600;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -183,8 +212,7 @@ nav.nav-tabs {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  flex: 0 0 85px;
-  min-width: 85px;
+  white-space: nowrap;
   transition: all 0.15s ease;
 }
 
@@ -244,7 +272,7 @@ main.app-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 16px;
+  padding: 18px;
   max-width: 1300px;
   width: 100%;
   margin: 0 auto;
@@ -284,7 +312,6 @@ main.app-content {
   box-shadow: var(--shadow-lg);
 }
 
-/* Mobile 90-degree landscape rotation */
 .stream-container.rotated-90 canvas#streamCanvas {
   transform: rotate(90deg);
   transform-origin: center center;
@@ -346,7 +373,7 @@ canvas#streamCanvas {
   box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
 }
 
-/* Virtual Trackpad Mode Overlay (Fully Transparent) */
+/* Virtual Trackpad Mode Overlay */
 .trackpad-overlay {
   position: absolute;
   inset: 0;
@@ -472,7 +499,7 @@ canvas#streamCanvas {
   color: var(--text-main);
   padding: 10px 4px;
   border-radius: var(--radius-md);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
   text-align: center;
@@ -563,25 +590,15 @@ canvas#streamCanvas {
 }
 
 /* -------------------------------------------------------------------
-   Tab 2: Touch Deck (Action Grid) - Strict Max 4 Tiles per Row on PC
+   Tab 2: Touch Deck (with Profiles Tabs)
    ------------------------------------------------------------------- */
-.deck-layout-wrapper {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-}
-
-.deck-main-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
 .deck-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .deck-title {
@@ -589,9 +606,30 @@ canvas#streamCanvas {
   font-weight: 700;
 }
 
-.deck-actions {
+.deck-profile-tabs {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  background: var(--bg-secondary);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.profile-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.profile-tab-btn.active {
+  background: var(--accent-blue);
+  color: #fff;
 }
 
 .btn-primary {
@@ -635,7 +673,7 @@ canvas#streamCanvas {
   background-color: var(--bg-tertiary);
 }
 
-/* Strict Max 4 Columns Grid on PC */
+/* Strict Max 4 Columns on PC */
 .deck-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -727,63 +765,7 @@ canvas#streamCanvas {
 }
 
 /* -------------------------------------------------------------------
-   Recent Actions Sidebar (PC: Max 5, Mobile: Max 3)
-   ------------------------------------------------------------------- */
-.recent-actions-sidebar {
-  width: 280px;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
-.recent-actions-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 8px;
-}
-
-.recent-actions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.recent-action-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  padding: 8px 10px;
-  border-radius: var(--radius-md);
-  font-size: 0.78rem;
-  animation: fadeIn 0.2s ease;
-}
-
-.recent-action-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-}
-
-.recent-action-time {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--text-dim);
-}
-
-/* -------------------------------------------------------------------
-   Tab 3: System Dashboard
+   Tab 3: System Dashboard, Task Manager & Live Sparklines
    ------------------------------------------------------------------- */
 .system-dashboard {
   display: flex;
@@ -791,9 +773,22 @@ canvas#streamCanvas {
   gap: 18px;
 }
 
+/* Active Window Strip */
+.active-window-strip {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+}
+
+/* Hardware Gauges with Sparkline Graph Canvas */
 .metrics-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 14px;
 }
 
@@ -804,7 +799,9 @@ canvas#streamCanvas {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
 }
 
 .metric-header {
@@ -827,9 +824,15 @@ canvas#streamCanvas {
   font-family: var(--font-mono);
 }
 
+.sparkline-canvas {
+  width: 100%;
+  height: 40px;
+  display: block;
+}
+
 .progress-bar-bg {
   width: 100%;
-  height: 6px;
+  height: 5px;
   background-color: var(--bg-tertiary);
   border-radius: var(--radius-full);
   overflow: hidden;
@@ -841,6 +844,7 @@ canvas#streamCanvas {
   transition: width 0.3s ease, background-color 0.3s ease;
 }
 
+/* Media, Radial Knob & Power Grid */
 .quick-controls-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -865,10 +869,32 @@ canvas#streamCanvas {
   gap: 8px;
 }
 
+/* Radial Volume Knob Container */
+.knob-row-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 14px;
+}
+
+.radial-knob-container {
+  width: 100px;
+  height: 100px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.knob-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 .volume-slider-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex: 1;
 }
 
 input[type="range"].volume-slider {
@@ -891,10 +917,6 @@ input[type="range"].volume-slider::-webkit-slider-thumb {
   transition: transform 0.1s ease;
 }
 
-input[type="range"].volume-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-}
-
 .media-btn-row {
   display: flex;
   gap: 10px;
@@ -905,6 +927,147 @@ input[type="range"].volume-slider::-webkit-slider-thumb:hover {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
   gap: 8px;
+}
+
+/* -------------------------------------------------------------------
+   Windows 11 Task Manager Table
+   ------------------------------------------------------------------- */
+.taskmgr-panel {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.taskmgr-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.taskmgr-search-box {
+  flex: 1;
+  min-width: 180px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.taskmgr-search-input {
+  width: 100%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: 6px 10px 6px 30px;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+}
+
+.taskmgr-search-box svg {
+  position: absolute;
+  left: 8px;
+  width: 14px;
+  height: 14px;
+  color: var(--text-dim);
+}
+
+.taskmgr-table-container {
+  max-height: 380px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.taskmgr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  text-align: left;
+}
+
+.taskmgr-table th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  padding: 8px 10px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+}
+
+.taskmgr-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: background 0.1s ease;
+  cursor: pointer;
+}
+
+.taskmgr-row:hover, .taskmgr-row.selected {
+  background-color: rgba(59, 130, 246, 0.12);
+}
+
+.taskmgr-row td {
+  padding: 8px 10px;
+}
+
+.btn-action-kill {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--accent-red);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.btn-action-kill:hover {
+  background: var(--accent-red);
+  color: #fff;
+}
+
+.priority-mini-select {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  font-size: 0.7rem;
+  padding: 3px 5px;
+  border-radius: var(--radius-sm);
+  margin-left: 4px;
+}
+
+/* Clipboard Sync Panel */
+.clipboard-panel {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.clipboard-row {
+  display: flex;
+  gap: 8px;
+}
+
+.clipboard-input {
+  flex: 1;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  user-select: text;
 }
 
 /* Command Runner */
@@ -956,7 +1119,7 @@ input[type="range"].volume-slider::-webkit-slider-thumb:hover {
 }
 
 /* -------------------------------------------------------------------
-   Tab 4: Settings & Search (Mobile Safe Layout)
+   Tab 4: Settings & Search (Spacious, Clean Layout)
    ------------------------------------------------------------------- */
 .settings-container {
   display: flex;
@@ -1028,7 +1191,7 @@ input[type="range"].volume-slider::-webkit-slider-thumb:hover {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 6px 0;
+  padding: 8px 0;
 }
 
 .setting-item.hidden {
@@ -1043,7 +1206,7 @@ input[type="range"].volume-slider::-webkit-slider-thumb:hover {
 }
 
 .setting-title {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   font-weight: 600;
 }
 
@@ -1062,7 +1225,7 @@ select.setting-select, input.setting-input {
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
   color: var(--text-main);
-  padding: 6px 12px;
+  padding: 7px 12px;
   border-radius: var(--radius-md);
   font-size: 0.85rem;
   user-select: text;
@@ -1333,28 +1496,15 @@ input:checked + .slider:before {
 @media (max-width: 768px) {
   header.app-header {
     padding: 0 10px;
-    height: 48px;
-    min-height: 48px;
-    max-height: 48px;
-  }
-  .brand {
-    flex: 0 0 auto;
+    height: 50px;
+    min-height: 50px;
   }
   .brand span {
-    font-size: 0.92rem;
+    font-size: 0.95rem;
   }
   .status-badge {
-    flex: 0 0 auto;
-    min-width: 0;
-    padding: 2px 6px;
-    font-size: 0.68rem;
-  }
-  .lang-selector {
-    flex: 0 0 auto;
-  }
-  .lang-selector select {
     padding: 3px 6px;
-    font-size: 0.72rem;
+    font-size: 0.7rem;
   }
   .header-search {
     display: none;
@@ -1380,11 +1530,11 @@ input:checked + .slider:before {
     min-width: 0;
     flex-direction: column;
     padding: 4px 2px;
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     gap: 2px;
   }
   main.app-content {
-    padding: 8px;
+    padding: 10px;
     padding-bottom: calc(75px + env(safe-area-inset-bottom));
   }
   .stream-container {
@@ -1412,12 +1562,6 @@ input:checked + .slider:before {
     padding: 6px 4px;
     font-size: 0.72rem;
   }
-  .deck-layout-wrapper {
-    flex-direction: column;
-  }
-  .recent-actions-sidebar {
-    width: 100%;
-  }
   .deck-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
@@ -1434,7 +1578,7 @@ input:checked + .slider:before {
   .deck-card-title {
     font-size: 0.75rem;
   }
-  /* Mobile safe settings items */
+  /* Mobile safe settings items without squishing or cutoffs */
   .setting-item {
     flex-direction: column;
     align-items: flex-start;
@@ -1453,5 +1597,12 @@ input:checked + .slider:before {
     flex-direction: column;
     align-items: center;
     text-align: center;
+  }
+  .knob-row-wrapper {
+    flex-direction: column;
+  }
+  .taskmgr-table th, .taskmgr-table td {
+    padding: 6px 6px;
+    font-size: 0.75rem;
   }
 }

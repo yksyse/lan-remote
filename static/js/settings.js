@@ -1,4 +1,4 @@
-// Modular Settings & Fuzzy Search Controller with i18n & QR Code
+// Modular Settings, Themes & Audio Controller
 const SettingsManager = {
   allSettingItems: [],
 
@@ -8,15 +8,54 @@ const SettingsManager = {
     this.setupSvgUploader();
     this.loadMonitors();
     this.setupLanguageSelectors();
+    this.setupThemeSelector();
+    this.setupSoundToggle();
+  },
+
+  setupThemeSelector() {
+    const savedTheme = localStorage.getItem('lan_remote_theme') || 'oled';
+    this.applyTheme(savedTheme);
+
+    const themeSelect = document.getElementById('settingThemeSelect');
+    if (themeSelect) {
+      themeSelect.value = savedTheme;
+      themeSelect.addEventListener('change', (e) => {
+        if (window.SoundEffects) window.SoundEffects.playClick();
+        this.applyTheme(e.target.value);
+      });
+    }
+  },
+
+  applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('lan_remote_theme', theme);
+  },
+
+  setupSoundToggle() {
+    const soundToggle = document.getElementById('settingSoundToggle');
+    const isEnabled = localStorage.getItem('lan_remote_sound') !== 'false';
+    if (soundToggle) {
+      soundToggle.checked = isEnabled;
+      soundToggle.addEventListener('change', (e) => {
+        const checked = e.target.checked;
+        localStorage.setItem('lan_remote_sound', checked);
+        if (window.SoundEffects) {
+          window.SoundEffects.enabled = checked;
+          if (checked) window.SoundEffects.playClick();
+        }
+      });
+    }
   },
 
   setupLanguageSelectors() {
     document.querySelectorAll('.lang-selector-select').forEach(sel => {
       sel.value = I18n.currentLang;
       sel.addEventListener('change', (e) => {
+        if (window.SoundEffects) window.SoundEffects.playClick();
         I18n.setLanguage(e.target.value);
         if (window.DeckManager) window.DeckManager.renderDeck();
         if (window.StreamManager) window.StreamManager.renderMonitorPills();
+        if (window.TaskManager) window.TaskManager.renderTable();
         this.renderNetworkInfo();
         App.showToast(I18n.t('settings_saved_toast'), 'success');
       });
@@ -32,7 +71,7 @@ const SettingsManager = {
     }
 
     document.querySelectorAll('.setting-control select, .setting-control input').forEach(el => {
-      if (el.classList.contains('lang-selector-select')) return;
+      if (el.classList.contains('lang-selector-select') || el.id === 'settingThemeSelect' || el.id === 'settingSoundToggle') return;
       el.addEventListener('change', () => this.saveSettingsFromUI());
     });
   },
@@ -290,6 +329,4 @@ const SettingsManager = {
 };
 
 window.SettingsManager = SettingsManager;
-document.addEventListener('DOMContentLoaded', () => {
-  SettingsManager.init();
-});
+document.addEventListener('DOMContentLoaded', () => SettingsManager.init());

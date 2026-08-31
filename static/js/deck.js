@@ -1,12 +1,14 @@
-// Touch Deck & Macro Controller with i18n & Action Logger
+// Touch Deck with Profiles (Media, Server, Gaming, All) & Sound Feedback
 const DeckManager = {
   icons: [],
   selectedCardId: null,
   selectedIconName: 'play',
+  activeProfile: 'all',
 
   init() {
     this.loadIcons();
     this.setupListeners();
+    this.setupProfileFilter();
   },
 
   async loadIcons() {
@@ -15,6 +17,18 @@ const DeckManager = {
       this.icons = await res.json();
       this.renderIconPicker();
     } catch (e) {}
+  },
+
+  setupProfileFilter() {
+    document.querySelectorAll('.profile-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (window.SoundEffects) window.SoundEffects.playClick();
+        document.querySelectorAll('.profile-tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.activeProfile = btn.dataset.profile || 'all';
+        this.renderDeck();
+      });
+    });
   },
 
   renderIconPicker() {
@@ -27,6 +41,7 @@ const DeckManager = {
       item.className = `svg-icon-preview ${ic.name === this.selectedIconName ? 'selected' : ''}`;
       item.innerHTML = `<img src="${ic.url}" alt="${ic.name}" />`;
       item.addEventListener('click', () => {
+        if (window.SoundEffects) window.SoundEffects.playClick();
         picker.querySelectorAll('.svg-icon-preview').forEach(p => p.classList.remove('selected'));
         item.classList.add('selected');
         this.selectedIconName = ic.name;
@@ -39,8 +54,16 @@ const DeckManager = {
     const grid = document.getElementById('deckGrid');
     if (!grid || !App.config?.deck) return;
 
-    const cards = App.config.deck.cards || [];
+    let cards = App.config.deck.cards || [];
+    if (this.activeProfile !== 'all') {
+      cards = cards.filter(c => !c.profile || c.profile === 'all' || c.profile === this.activeProfile);
+    }
+
     grid.innerHTML = '';
+    if (cards.length === 0) {
+      grid.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:30px; color:var(--text-dim);">${I18n.t('no_cards_in_profile') || 'No action buttons in this profile'}</div>`;
+      return;
+    }
 
     cards.forEach(card => {
       const cardEl = document.createElement('div');
@@ -73,8 +96,8 @@ const DeckManager = {
 
   async triggerCard(card) {
     try {
+      if (window.SoundEffects) window.SoundEffects.playClick();
       if (window.StreamManager) window.StreamManager.vibrate(25);
-      App.logAction(card.icon, card.title);
 
       const res = await fetch(`/api/deck/trigger/${card.id}`, { method: 'POST' });
       const data = await res.json();
@@ -144,6 +167,7 @@ const DeckManager = {
     document.getElementById('modalCardType').value = 'shortcut';
     document.getElementById('modalCardPayload').value = '';
     document.getElementById('modalCardColor').value = '#3b82f6';
+    document.getElementById('modalCardProfile').value = this.activeProfile !== 'all' ? this.activeProfile : 'all';
     document.getElementById('deleteDeckCardBtn').style.display = 'none';
 
     const modalTitle = document.querySelector('.modal-title');
@@ -160,6 +184,7 @@ const DeckManager = {
     document.getElementById('modalCardTitle').value = card.title;
     document.getElementById('modalCardType').value = card.type;
     document.getElementById('modalCardColor').value = card.color || '#3b82f6';
+    document.getElementById('modalCardProfile').value = card.profile || 'all';
     document.getElementById('deleteDeckCardBtn').style.display = 'block';
 
     const modalTitle = document.querySelector('.modal-title');
@@ -187,6 +212,7 @@ const DeckManager = {
     const title = document.getElementById('modalCardTitle').value.trim();
     const type = document.getElementById('modalCardType').value;
     const color = document.getElementById('modalCardColor').value;
+    const profile = document.getElementById('modalCardProfile').value || 'all';
     const rawPayload = document.getElementById('modalCardPayload').value.trim();
 
     if (!title) {
@@ -208,6 +234,7 @@ const DeckManager = {
       title: title,
       icon: this.selectedIconName,
       color: color,
+      profile: profile,
       type: type,
       payload: payload
     };
@@ -221,6 +248,7 @@ const DeckManager = {
       this.closeModal();
       await App.loadConfig();
       App.showToast(I18n.t('card_saved_toast'), 'success');
+      if (window.SoundEffects) window.SoundEffects.playSuccess();
     } catch (e) {
       App.showToast('Error saving card', 'error');
     }
@@ -234,6 +262,7 @@ const DeckManager = {
       this.closeModal();
       await App.loadConfig();
       App.showToast(I18n.t('card_deleted_toast'), 'info');
+      if (window.SoundEffects) window.SoundEffects.playSuccess();
     } catch (e) {
       App.showToast('Error deleting card', 'error');
     }
@@ -241,6 +270,4 @@ const DeckManager = {
 };
 
 window.DeckManager = DeckManager;
-document.addEventListener('DOMContentLoaded', () => {
-  DeckManager.init();
-});
+document.addEventListener('DOMContentLoaded', () => DeckManager.init());

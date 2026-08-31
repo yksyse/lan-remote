@@ -10,6 +10,7 @@ from fastapi import (
     FastAPI,
     File,
     HTTPException,
+    Query,
     UploadFile,
     WebSocket,
     WebSocketDisconnect,
@@ -30,7 +31,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("LAN-Remote")
 
-app = FastAPI(title="LAN Remote Control", version="1.2.0")
+app = FastAPI(title="LAN Remote Control", version="1.3.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -165,7 +166,6 @@ async def websocket_input(websocket: WebSocket):
                     ny = float(event["y"])
                     virtual_cursor["x"] = nx
                     virtual_cursor["y"] = ny
-                    # Move physical mouse if in physical mode OR if dragging
                     if cursor_mode == "physical" or is_mouse_down:
                         driver.move_absolute(nx, ny)
 
@@ -305,6 +305,65 @@ async def update_config(update: SectionUpdate):
 
 
 # ----------------------------------------------------
+# REST API: Windows 11 Task Manager Process Endpoints
+# ----------------------------------------------------
+@app.get("/api/system/processes")
+async def get_processes(
+    sort: str = Query("cpu"),
+    search: str = Query(""),
+    limit: int = Query(60),
+):
+    return system_mgr.get_processes(sort_by=sort, search=search, limit=limit)
+
+
+class KillProcessRequest(BaseModel):
+    pid: int
+    tree: bool = False
+
+
+@app.post("/api/system/processes/kill")
+async def kill_process(req: KillProcessRequest):
+    return system_mgr.kill_process(req.pid, req.tree)
+
+
+class SetPriorityRequest(BaseModel):
+    pid: int
+    priority: str
+
+
+@app.post("/api/system/processes/priority")
+async def set_process_priority(req: SetPriorityRequest):
+    return system_mgr.set_process_priority(req.pid, req.priority)
+
+
+class RunTaskRequest(BaseModel):
+    command: str
+
+
+@app.post("/api/system/processes/run")
+async def run_new_task(req: RunTaskRequest):
+    res = await system_mgr.execute_command(req.command)
+    return res
+
+
+# ----------------------------------------------------
+# REST API: Clipboard Sync
+# ----------------------------------------------------
+@app.get("/api/system/clipboard")
+async def get_clipboard():
+    return system_mgr.get_clipboard()
+
+
+class ClipboardSetRequest(BaseModel):
+    text: str
+
+
+@app.post("/api/system/clipboard")
+async def set_clipboard(req: ClipboardSetRequest):
+    return system_mgr.set_clipboard(req.text)
+
+
+# ----------------------------------------------------
 # REST API: Touch Deck Management & Actions
 # ----------------------------------------------------
 @app.get("/api/deck")
@@ -317,6 +376,7 @@ class DeckCardModel(BaseModel):
     title: str
     icon: str
     color: str = "#3b82f6"
+    profile: Optional[str] = "all"
     type: str
     payload: Dict[str, Any]
 

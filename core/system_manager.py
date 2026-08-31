@@ -1,57 +1,123 @@
 import asyncio
+import collections
 import ctypes
 import os
 import platform
-import socket
 import subprocess
 import time
 from typing import Any, Dict, List, Optional
 import psutil
 
+# Windows COM & Audio dependencies
+try:
+    from comtypes import CLSCTX_ALL
+    from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+
+    pycaw_available = True
+except Exception:
+    pycaw_available = False
+
+try:
+    import win32clipboard
+    import win32gui
+    import win32process
+
+    win32_available = True
+except Exception:
+    win32_available = False
+
 user32 = ctypes.windll.user32
+kernel32 = ctypes.windll.kernel32
 
 
 class SystemManager:
-    """Manages system metrics, media, power, and command execution."""
+    """Manages host performance, Windows 11 Task Manager processes, clipboard, and power."""
 
     def __init__(self):
-        self.hostname = socket.gethostname()
-        self.os_info = f"{platform.system()} {platform.release()}"
-        self.boot_time = psutil.boot_time()
+        self._volume_endpoint = None
+        self.history_len = 30
+        self.cpu_history = collections.deque(
+            [0.0] * self.history_len, maxlen=self.history_len
+        )
+        self.ram_history = collections.deque(
+            [0.0] * self.history_len, maxlen=self.history_len
+        )
+        self._init_audio()
+        # Prime psutil CPU monitoring
+        psutil.cpu_percent(interval=None)
 
-    def get_local_ips(self) -> List[str]:
-        """Return list of non-loopback IPv4 addresses."""
-        ips = []
+    def _init_audio(self):
+        if not pycaw_available:
+            return
         try:
-            for iface, addrs in psutil.net_if_addrs().items():
-                for addr in addrs:
-                    if addr.family == socket.AF_INET:
-                        ip = addr.address
-                        if (
-                            not ip.startswith("127.")
-                            and not ip.startswith("169.254.")
-                        ):
-                            ips.append(ip)
+            devices = AudioUtilities.GetSpeakers()
+            if hasattr(devices, "EndpointVolume"):
+                self._volume_endpoint = devices.EndpointVolume
+            else:
+                interface = devices.Activate(
+                    IAudioEndpointVolume._iid_, CLSCTX_ALL, None
+                )
+                self._volume_endpoint = ctypes.cast(
+                    interface, ctypes.POINTER(IAudioEndpointVolume)
+                )
         except Exception:
-            pass
+            self._volume_endpoint = None
 
-        if not ips:
-            # Fallback
+    def get_volume(self) -> tuple[int, bool]:
+        if not self._volume_endpoint:
+            return 50, False
+        try:
+            vol = round(self._volume_endpoint.GetMasterVolumeLevelScalar() * 100)
+            muted = bool(self._volume_endpoint.GetMute())
+            return vol, muted
+        except Exception:
+            return 50, False
+
+    def set_volume(self, level: int):
+        if not self._volume_endpoint:
+            self._init_audio()
+        if self._volume_endpoint:
             try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                s.connect(("8.8.8.8", 80))
-                ips.append(s.getsockname()[0])
-                s.close()
+                clamped = max(0, min(100, level)) / 100.0
+                self._volume_endpoint.SetMasterVolumeLevelScalar(clamped, None)
             except Exception:
-                ips.append("127.0.0.1")
+                pass
 
-        return list(set(ips))
+    def toggle_mute(self) -> bool:
+        if not self._volume_endpoint:
+            self._init_audio()
+        if self._volume_endpoint:
+            try:
+                cur = bool(self._volume_endpoint.GetMute())
+                self._volume_endpoint.SetMute(not cur, None)
+                return not cur
+            except Exception:
+                pass
+        return False
+
+    def get_active_window(self) -> Dict[str, str]:
+        """Get the title and executable name of the current foreground window."""
+        if not win32_available:
+            return {"title": "Desktop", "process": "explorer.exe"}
+        try:
+            hwnd = win32gui.GetForegroundWindow()
+            title = win32gui.GetWindowText(hwnd)
+            _, pid = win32process.GetWindowThreadProcessId(hwnd)
+            try:
+                proc = psutil.Process(pid)
+                pname = proc.name()
+            except Exception:
+                pname = "System"
+            return {"title": title or "Desktop", "process": pname}
+        except Exception:
+            return {"title": "Desktop", "process": "explorer.exe"}
 
     def get_metrics(self) -> Dict[str, Any]:
-        """Get live system stats."""
+        cpu_p = psutil.cpu_percent(interval=None)
         mem = psutil.virtual_memory()
-        cpu_percent = psutil.cpu_percent(interval=None)
-        cpu_count = psutil.cpu_count(logical=True)
+
+        self.cpu_history.append(round(cpu_p, 1))
+        self.ram_history.append(round(mem.percent, 1))
 
         disks = []
         for part in psutil.disk_partitions(all=False):
@@ -62,158 +128,271 @@ class SystemManager:
                 disks.append(
                     {
                         "mount": part.mountpoint,
-                        "device": part.device,
                         "total_gb": round(usage.total / (1024**3), 1),
                         "used_gb": round(usage.used / (1024**3), 1),
                         "free_gb": round(usage.free / (1024**3), 1),
-                        "percent": usage.percent,
+                        "percent": round(usage.percent, 1),
                     }
                 )
-            except (PermissionError, FileNotFoundError):
+            except Exception:
                 continue
 
-        uptime_sec = int(time.time() - self.boot_time)
-        hours, rem = divmod(uptime_sec, 3600)
-        minutes, seconds = divmod(rem, 60)
-        uptime_str = f"{hours}h {minutes}m {seconds}s"
-
         vol, muted = self.get_volume()
+        uptime_sec = time.time() - psutil.boot_time()
+        hours, rem = divmod(int(uptime_sec), 3600)
+        mins, secs = divmod(rem, 60)
+        uptime_str = f"{hours}h {mins}m"
 
         return {
-            "hostname": self.hostname,
-            "os": self.os_info,
-            "uptime": uptime_str,
-            "uptime_seconds": uptime_sec,
-            "cpu_percent": cpu_percent,
-            "cpu_count": cpu_count,
+            "cpu_percent": round(cpu_p, 1),
+            "cpu_history": list(self.cpu_history),
             "memory": {
-                "total_gb": round(mem.total / (1024**3), 1),
-                "used_gb": round(mem.used / (1024**3), 1),
-                "free_gb": round(mem.available / (1024**3), 1),
-                "percent": mem.percent,
+                "percent": round(mem.percent, 1),
+                "used_gb": round(mem.used / (1024**3), 2),
+                "total_gb": round(mem.total / (1024**3), 2),
+                "history": list(self.ram_history),
             },
             "disks": disks,
             "volume": vol,
             "muted": muted,
+            "uptime": uptime_str,
+            "hostname": platform.node(),
+            "os": f"{platform.system()} {platform.release()}",
             "local_ips": self.get_local_ips(),
+            "active_window": self.get_active_window(),
         }
 
-    def get_volume(self) -> (int, bool):
-        """Get Windows master volume level (0-100) and mute status."""
+    # ----------------------------------------------------
+    # Windows 11 Task Manager Process Engine
+    # ----------------------------------------------------
+    def get_processes(
+        self,
+        sort_by: str = "cpu",
+        search: str = "",
+        limit: int = 60,
+    ) -> List[Dict[str, Any]]:
+        procs = []
+        search_q = search.lower().strip()
+
+        for p in psutil.process_iter(
+            [
+                "pid",
+                "name",
+                "cpu_percent",
+                "memory_percent",
+                "memory_info",
+                "status",
+                "username",
+            ]
+        ):
+            try:
+                info = p.info
+                name = info.get("name") or ""
+                if search_q and (
+                    search_q not in name.lower()
+                    and search_q not in str(info.get("pid"))
+                ):
+                    continue
+
+                mem_info = info.get("memory_info")
+                mem_mb = (
+                    round(mem_info.rss / (1024 * 1024), 1) if mem_info else 0.0
+                )
+
+                procs.append(
+                    {
+                        "pid": info.get("pid"),
+                        "name": name,
+                        "cpu_percent": round(info.get("cpu_percent") or 0.0, 1),
+                        "mem_percent": round(
+                            info.get("memory_percent") or 0.0, 1
+                        ),
+                        "mem_mb": mem_mb,
+                        "status": info.get("status") or "running",
+                        "username": (info.get("username") or "").split("\\")[-1]
+                        or "System",
+                    }
+                )
+            except (
+                psutil.NoSuchProcess,
+                psutil.AccessDenied,
+                psutil.ZombieProcess,
+            ):
+                continue
+
+        if sort_by == "mem":
+            procs.sort(key=lambda x: x["mem_mb"], reverse=True)
+        elif sort_by == "name":
+            procs.sort(key=lambda x: x["name"].lower())
+        elif sort_by == "pid":
+            procs.sort(key=lambda x: x["pid"])
+        else:  # cpu
+            procs.sort(key=lambda x: x["cpu_percent"], reverse=True)
+
+        return procs[:limit]
+
+    def kill_process(self, pid: int, tree: bool = False) -> Dict[str, Any]:
         try:
-            from pycaw.pycaw import AudioUtilities
+            parent = psutil.Process(pid)
+            if tree:
+                children = parent.children(recursive=True)
+                for child in children:
+                    try:
+                        child.kill()
+                    except Exception:
+                        pass
+            parent.kill()
+            return {"status": "ok", "pid": pid, "action": "killed"}
+        except psutil.NoSuchProcess:
+            return {
+                "status": "error",
+                "detail": f"Process {pid} no longer exists",
+            }
+        except psutil.AccessDenied:
+            return {
+                "status": "error",
+                "detail": f"Access denied for process {pid}",
+            }
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}
 
-            spk = AudioUtilities.GetSpeakers()
-            if spk and hasattr(spk, "EndpointVolume"):
-                vol = spk.EndpointVolume
-                level = int(round(vol.GetMasterVolumeLevelScalar() * 100))
-                muted = bool(vol.GetMute())
-                return level, muted
-        except Exception:
-            pass
-        return 50, False
+    def set_process_priority(
+        self, pid: int, priority: str
+    ) -> Dict[str, Any]:
+        prio_map = {
+            "idle": psutil.IDLE_PRIORITY_CLASS,
+            "below_normal": psutil.BELOW_NORMAL_PRIORITY_CLASS,
+            "normal": psutil.NORMAL_PRIORITY_CLASS,
+            "above_normal": psutil.ABOVE_NORMAL_PRIORITY_CLASS,
+            "high": psutil.HIGH_PRIORITY_CLASS,
+            "realtime": psutil.REALTIME_PRIORITY_CLASS,
+        }
+        target_prio = prio_map.get(priority.lower())
+        if target_prio is None:
+            return {"status": "error", "detail": "Invalid priority class"}
 
-    def set_volume(self, level: int) -> bool:
-        """Set Windows master volume level (0-100)."""
-        level = max(0, min(100, level))
         try:
-            from pycaw.pycaw import AudioUtilities
+            p = psutil.Process(pid)
+            p.nice(target_prio)
+            return {"status": "ok", "pid": pid, "priority": priority}
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}
 
-            spk = AudioUtilities.GetSpeakers()
-            if spk and hasattr(spk, "EndpointVolume"):
-                vol = spk.EndpointVolume
-                vol.SetMasterVolumeLevelScalar(level / 100.0, None)
-                return True
-        except Exception:
-            pass
-        return False
-
-    def toggle_mute(self) -> bool:
-        """Toggle audio mute state."""
+    # ----------------------------------------------------
+    # Windows Clipboard Sync
+    # ----------------------------------------------------
+    def get_clipboard(self) -> Dict[str, str]:
+        if not win32_available:
+            return {"status": "error", "text": ""}
         try:
-            from pycaw.pycaw import AudioUtilities
+            win32clipboard.OpenClipboard()
+            text = ""
+            if win32clipboard.IsClipboardFormatAvailable(
+                win32clipboard.CF_UNICODETEXT
+            ):
+                text = win32clipboard.GetClipboardData(
+                    win32clipboard.CF_UNICODETEXT
+                )
+            elif win32clipboard.IsClipboardFormatAvailable(
+                win32clipboard.CF_TEXT
+            ):
+                text = win32clipboard.GetClipboardData(
+                    win32clipboard.CF_TEXT
+                ).decode("utf-8", errors="ignore")
+            win32clipboard.CloseClipboard()
+            return {"status": "ok", "text": text or ""}
+        except Exception as e:
+            try:
+                win32clipboard.CloseClipboard()
+            except Exception:
+                pass
+            return {"status": "error", "text": "", "detail": str(e)}
 
-            spk = AudioUtilities.GetSpeakers()
-            if spk and hasattr(spk, "EndpointVolume"):
-                vol = spk.EndpointVolume
-                current = vol.GetMute()
-                vol.SetMute(not current, None)
-                return not current
-        except Exception:
-            pass
-        return False
+    def set_clipboard(self, text: str) -> Dict[str, Any]:
+        if not win32_available:
+            return {"status": "error", "detail": "Win32 unavailable"}
+        try:
+            win32clipboard.OpenClipboard()
+            win32clipboard.EmptyClipboard()
+            win32clipboard.SetClipboardData(
+                win32clipboard.CF_UNICODETEXT, str(text)
+            )
+            win32clipboard.CloseClipboard()
+            return {"status": "ok"}
+        except Exception as e:
+            try:
+                win32clipboard.CloseClipboard()
+            except Exception:
+                pass
+            return {"status": "error", "detail": str(e)}
+
+    def get_local_ips(self) -> List[str]:
+        ips = []
+        for iface, snics in psutil.net_if_addrs().items():
+            for snic in snics:
+                if (
+                    snic.family.name == "AF_INET"
+                    and not snic.address.startswith("127.")
+                ):
+                    ips.append(snic.address)
+        return ips or ["127.0.0.1"]
 
     def media_control(self, action: str):
-        """Execute media key action."""
-        VK_MAP = {
-            "play_pause": 0xB3,
-            "next": 0xB0,
-            "prev": 0xB1,
-            "stop": 0xB2,
-            "vol_up": 0xAF,
-            "vol_down": 0xAE,
-            "mute": 0xAD,
+        VK_MEDIA_NEXT_TRACK = 0xB0
+        VK_MEDIA_PREV_TRACK = 0xB1
+        VK_MEDIA_PLAY_PAUSE = 0xB3
+        VK_VOLUME_MUTE = 0xAD
+        VK_VOLUME_DOWN = 0xAE
+        VK_VOLUME_UP = 0xAF
+
+        act_map = {
+            "next": VK_MEDIA_NEXT_TRACK,
+            "prev": VK_MEDIA_PREV_TRACK,
+            "play_pause": VK_MEDIA_PLAY_PAUSE,
+            "mute": VK_VOLUME_MUTE,
+            "vol_down": VK_VOLUME_DOWN,
+            "vol_up": VK_VOLUME_UP,
         }
-        vk = VK_MAP.get(action.lower())
+        vk = act_map.get(action)
         if vk:
-            # Emulate key press via user32.keybd_event
             user32.keybd_event(vk, 0, 0, 0)
-            time.sleep(0.01)
-            user32.keybd_event(vk, 0, 2, 0)  # KEYEVENTF_KEYUP = 2
+            time.sleep(0.02)
+            user32.keybd_event(vk, 0, 2, 0)
 
     def power_action(self, action: str) -> Dict[str, Any]:
-        """Perform power operations."""
-        act = action.lower()
-        if act == "lock":
+        if action == "lock":
             user32.LockWorkStation()
             return {"status": "ok", "message": "Workstation locked"}
-        elif act == "screen_off":
-            # WM_SYSCOMMAND = 0x0112, SC_MONITORPOWER = 0xF170, 2 = Off
+        elif action == "screen_off":
             user32.SendMessageW(0xFFFF, 0x0112, 0xF170, 2)
-            return {"status": "ok", "message": "Display powered off"}
-        elif act == "sleep":
-            # Suspend without hibernation
+            return {"status": "ok", "message": "Screen turned off"}
+        elif action == "sleep":
             ctypes.windll.PowrProf.SetSuspendState(0, 1, 0)
             return {"status": "ok", "message": "System entering sleep mode"}
-        elif act == "hibernate":
-            ctypes.windll.PowrProf.SetSuspendState(1, 1, 0)
-            return {"status": "ok", "message": "System hibernating"}
-        elif act == "restart":
+        elif action == "restart":
             subprocess.Popen(["shutdown", "/r", "/t", "0"])
             return {"status": "ok", "message": "System restarting"}
-        elif act == "shutdown":
+        elif action == "shutdown":
             subprocess.Popen(["shutdown", "/s", "/t", "0"])
             return {"status": "ok", "message": "System shutting down"}
-        else:
-            return {"status": "error", "message": f"Unknown action: {action}"}
+        return {"status": "error", "message": "Unknown power action"}
 
-    async def execute_command(
-        self, command: str, timeout: int = 15
-    ) -> Dict[str, Any]:
-        """Run custom shell command asynchronously."""
+    async def execute_command(self, command: str) -> Dict[str, Any]:
         try:
-            process = await asyncio.create_subprocess_shell(
+            proc = await asyncio.create_subprocess_shell(
                 command,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(), timeout=timeout
-            )
+            stdout, stderr = await proc.communicate()
             return {
-                "exit_code": process.returncode,
+                "status": "ok",
                 "stdout": stdout.decode("utf-8", errors="replace"),
                 "stderr": stderr.decode("utf-8", errors="replace"),
-            }
-        except asyncio.TimeoutError:
-            return {
-                "exit_code": -1,
-                "stdout": "",
-                "stderr": "Command timed out.",
+                "exit_code": proc.returncode,
             }
         except Exception as e:
-            return {"exit_code": -1, "stdout": "", "stderr": str(e)}
+            return {"status": "error", "stderr": str(e), "exit_code": -1}
 
 
-# Global system manager instance
 system_mgr = SystemManager()

@@ -14,7 +14,7 @@
 </head>
 <body>
 
-  <!-- Top Header Navigation (Stable, Non-Jumping) -->
+  <!-- Top Header Navigation (Spacious, Non-Jumping) -->
   <header class="app-header">
     <div class="brand">
       <img src="/icons/desktop.svg" class="brand-icon" alt="Logo">
@@ -154,10 +154,19 @@
       </div>
     </section>
 
-    <!-- TAB 2: TOUCH DECK (MACRO GRID: MAX 4 COLUMNS ON PC) -->
+    <!-- TAB 2: TOUCH DECK (WITH CATEGORY PROFILES) -->
     <section id="tab-deck" class="tab-pane">
       <div class="deck-header">
-        <div class="deck-title" data-i18n="deck_title">Touch Deck Actions</div>
+        <div class="deck-title" data-i18n="deck_title">Touch Deck</div>
+        
+        <!-- Category Profiles Selector -->
+        <div class="deck-profile-tabs">
+          <button class="profile-tab-btn active" data-profile="all" data-i18n="profile_all">🌟 Все</button>
+          <button class="profile-tab-btn" data-profile="media" data-i18n="profile_media">🛋️ Медиа</button>
+          <button class="profile-tab-btn" data-profile="server" data-i18n="profile_server">🛠️ Сервер</button>
+          <button class="profile-tab-btn" data-profile="gaming" data-i18n="profile_gaming">🎮 Игры</button>
+        </div>
+
         <div class="deck-actions">
           <button id="addDeckCardBtn" class="btn-primary">
             <img src="/icons/plus.svg" style="width:16px;height:16px;" alt="Add">
@@ -167,39 +176,54 @@
       </div>
       
       <div id="deckGrid" class="deck-grid">
-        <!-- Rendered dynamically (Strictly max 4 per row on PC) -->
+        <!-- Rendered dynamically (Max 4 per row on PC) -->
       </div>
     </section>
 
-    <!-- TAB 3: SYSTEM DASHBOARD -->
+    <!-- TAB 3: SYSTEM DASHBOARD & WINDOWS 11 TASK MANAGER -->
     <section id="tab-system" class="tab-pane">
       <div class="system-dashboard">
         
-        <!-- Hardware Gauges -->
+        <!-- Active Window on Host Indicator -->
+        <div class="active-window-strip">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="color:var(--text-muted);font-weight:600;" data-i18n="active_window_title">Активное окно на ПК:</span>
+            <div id="activeWindowBadge">--</div>
+          </div>
+          <div id="sysHostInfo" style="font-size:0.75rem;color:var(--text-dim);font-family:var(--font-mono);">--</div>
+        </div>
+
+        <!-- Hardware Gauges with Live Sparkline Waveform Graphs -->
         <div class="metrics-row">
+          
+          <!-- CPU Card -->
           <div class="metric-card">
             <div class="metric-header">
               <span data-i18n="cpu_usage">CPU Usage</span>
               <img src="/icons/cpu.svg" alt="CPU">
             </div>
             <div id="cpuPercentVal" class="metric-value">--%</div>
+            <canvas id="cpuSparkline" class="sparkline-canvas" width="280" height="40"></canvas>
             <div class="progress-bar-bg">
               <div id="cpuPercentBar" class="progress-bar-fill" style="width:0%;"></div>
             </div>
           </div>
 
+          <!-- RAM Card -->
           <div class="metric-card">
             <div class="metric-header">
               <span data-i18n="ram_memory">RAM Memory</span>
               <img src="/icons/activity.svg" alt="RAM">
             </div>
             <div id="memPercentVal" class="metric-value">--%</div>
+            <canvas id="memSparkline" class="sparkline-canvas" width="280" height="40"></canvas>
             <div class="progress-bar-bg">
               <div id="memPercentBar" class="progress-bar-fill" style="width:0%;"></div>
             </div>
             <div id="memSubtext" style="font-size:0.75rem;color:var(--text-dim);">-- GB / -- GB</div>
           </div>
 
+          <!-- Storage Card -->
           <div class="metric-card">
             <div class="metric-header">
               <span data-i18n="disks_storage">Disks & Storage</span>
@@ -211,19 +235,30 @@
           </div>
         </div>
 
-        <!-- Quick Media & Power Control Panels -->
+        <!-- Quick Controls: Radial Knob Audio & Power -->
         <div class="quick-controls-grid">
           
-          <!-- Audio & Media Panel -->
+          <!-- Audio Panel with Radial Rotary Knob & Slider -->
           <div class="control-panel">
             <div class="control-panel-title">
               <img src="/icons/volume_up.svg" style="width:18px;height:18px;" alt="Audio">
               <span data-i18n="master_volume">Master Volume</span>
             </div>
-            <div class="volume-slider-row">
-              <input type="range" id="sysVolumeSlider" class="volume-slider" min="0" max="100" value="50">
-              <span id="sysVolumeLabel" style="font-family:var(--font-mono);font-size:0.85rem;width:40px;">50%</span>
-              <button id="sysMuteBtn" class="btn-secondary" style="padding:6px 10px;" data-i18n="mute_btn">Mute</button>
+            <div class="knob-row-wrapper">
+              <div id="radialVolumeKnob" class="radial-knob-container">
+                <!-- Rendered dynamically by knob.js -->
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+                <div class="volume-slider-row">
+                  <input type="range" id="sysVolumeSlider" class="volume-slider" min="0" max="100" value="50">
+                  <span id="sysVolumeLabel" style="font-family:var(--font-mono);font-size:0.85rem;width:40px;">50%</span>
+                </div>
+                <div style="display:flex;gap:6px;">
+                  <button id="sysMuteBtn" class="btn-secondary" style="flex:1;padding:6px;" data-i18n="mute_btn">Mute</button>
+                  <button class="btn-secondary" data-media="vol_down" style="padding:6px 12px;">Vol -</button>
+                  <button class="btn-secondary" data-media="vol_up" style="padding:6px 12px;">Vol +</button>
+                </div>
+              </div>
             </div>
             <div class="media-btn-row">
               <button class="btn-secondary" data-media="prev" title="Previous Track"><img src="/icons/restart.svg" style="width:16px;height:16px;transform:rotate(-90deg);" alt="Prev"></button>
@@ -245,9 +280,68 @@
               <button class="btn-secondary" data-power="restart" style="color:var(--accent-yellow);" data-i18n="act_restart">Restart</button>
               <button class="btn-secondary" data-power="shutdown" style="color:var(--accent-red);" data-i18n="act_shutdown">Shutdown</button>
             </div>
-            <div id="sysHostInfo" style="font-size:0.75rem;color:var(--text-dim);margin-top:6px;">--</div>
           </div>
 
+        </div>
+
+        <!-- Windows 11 Task Manager (Live Process Explorer) -->
+        <div class="taskmgr-panel">
+          <div class="taskmgr-header-bar">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <img src="/icons/activity.svg" style="width:20px;height:20px;color:var(--accent-blue);" alt="">
+              <span style="font-size:1.05rem;font-weight:700;" data-i18n="taskmgr_title">Windows Task Manager</span>
+              <span id="taskMgrCount" style="font-size:0.75rem;color:var(--text-dim);font-family:var(--font-mono);">--</span>
+            </div>
+
+            <div style="display:flex;gap:8px;align-items:center;flex:1;justify-content:flex-end;">
+              <div class="taskmgr-search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="taskMgrSearch" class="taskmgr-search-input" data-i18n-placeholder="taskmgr_search_placeholder" placeholder="Search process...">
+              </div>
+
+              <select id="taskMgrSort" class="setting-select" style="padding:5px 8px;font-size:0.78rem;">
+                <option value="cpu" data-i18n="sort_cpu">Sort by CPU %</option>
+                <option value="mem" data-i18n="sort_mem">Sort by Memory (MB)</option>
+                <option value="name" data-i18n="sort_name">Sort by Name</option>
+                <option value="pid" data-i18n="sort_pid">Sort by PID</option>
+              </select>
+
+              <button id="taskMgrRunBtn" class="btn-secondary" style="padding:5px 10px;font-size:0.78rem;" data-i18n="new_task_btn">Run Task...</button>
+              <button id="taskMgrRefreshBtn" class="btn-primary" style="padding:5px 10px;font-size:0.78rem;" data-i18n="refresh_btn">Refresh</button>
+            </div>
+          </div>
+
+          <!-- Processes Table -->
+          <div class="taskmgr-table-container">
+            <table class="taskmgr-table">
+              <thead>
+                <tr>
+                  <th data-i18n="col_process">Process</th>
+                  <th data-i18n="col_pid">PID</th>
+                  <th data-i18n="col_cpu">CPU</th>
+                  <th data-i18n="col_memory">Memory</th>
+                  <th data-i18n="col_user">User</th>
+                  <th style="text-align:right;" data-i18n="col_actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="taskMgrTableBody">
+                <!-- Dynamically rendered by taskmgr.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Clipboard Synchronization Panel -->
+        <div class="clipboard-panel">
+          <div class="control-panel-title">
+            <img src="/icons/edit.svg" style="width:18px;height:18px;" alt="">
+            <span data-i18n="clipboard_title">Clipboard Synchronization</span>
+          </div>
+          <div class="clipboard-row">
+            <input type="text" id="clipboardInput" class="clipboard-input" data-i18n-placeholder="clipboard_placeholder" placeholder="Type text to send to host clipboard...">
+            <button id="clipboardSendBtn" class="btn-primary" data-i18n="clipboard_send_btn">Send to Host</button>
+            <button id="clipboardGetBtn" class="btn-secondary" data-i18n="clipboard_get_btn">Fetch from Host</button>
+          </div>
         </div>
 
         <!-- Mini Shell Command Runner -->
@@ -266,7 +360,7 @@
       </div>
     </section>
 
-    <!-- TAB 4: MODULAR SETTINGS WITH INSTANT FUZZY SEARCH -->
+    <!-- TAB 4: MODULAR SETTINGS WITH THEMES & FUZZY SEARCH -->
     <section id="tab-settings" class="tab-pane">
       <div class="settings-container">
         
@@ -276,10 +370,46 @@
           <input type="text" id="settingsSearchInput" class="settings-search-input" data-i18n-placeholder="settings_search_placeholder" placeholder="Search any setting...">
         </div>
 
-        <!-- Section 0: Language -->
+        <!-- Section 0: Appearance, Themes & Sound -->
+        <div class="settings-section" data-section="appearance">
+          <div class="section-header">
+            <img src="/icons/sliders.svg" style="width:20px;height:20px;color:var(--accent-blue);" alt="">
+            <h3 data-i18n="sec_appearance">Appearance & Theme</h3>
+          </div>
+
+          <div class="setting-item" data-tags="theme тема вид олед cyberpunk slate glass color">
+            <div class="setting-meta">
+              <div class="setting-title" data-i18n="setting_theme_title">Interface Theme</div>
+              <div class="setting-desc" data-i18n="setting_theme_desc">Choose visual style and color palette</div>
+            </div>
+            <div class="setting-control">
+              <select id="settingThemeSelect" class="setting-select">
+                <option value="oled" data-i18n="theme_oled">OLED Deep Black</option>
+                <option value="cyberpunk" data-i18n="theme_cyber">Cyberpunk Neon</option>
+                <option value="slate" data-i18n="theme_slate">Obsidian Slate</option>
+                <option value="glass" data-i18n="theme_glass">Glassmorphism</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-item" data-tags="sound audio feedback click звук щелчки">
+            <div class="setting-meta">
+              <div class="setting-title" data-i18n="setting_sound_title">Tactile Audio Clicks</div>
+              <div class="setting-desc" data-i18n="setting_sound_desc">Mechanical switch clicks and confirmation sounds</div>
+            </div>
+            <div class="setting-control">
+              <label class="switch">
+                <input type="checkbox" id="settingSoundToggle" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 1: Language -->
         <div class="settings-section" data-section="language">
           <div class="section-header">
-            <img src="/icons/sliders.svg" style="width:20px;height:20px;color:var(--accent-blue);" alt="Language">
+            <img src="/icons/settings.svg" style="width:20px;height:20px;color:var(--accent-blue);" alt="Language">
             <h3 data-i18n="sec_language">Interface Language</h3>
           </div>
           <div class="setting-item" data-tags="language язык sprache russian english german">
@@ -297,7 +427,7 @@
           </div>
         </div>
 
-        <!-- Section 1: Video & Stream -->
+        <!-- Section 2: Video & Stream -->
         <div class="settings-section" data-section="stream">
           <div class="section-header">
             <img src="/icons/desktop.svg" style="width:20px;height:20px;color:var(--accent-blue);" alt="Video">
@@ -359,7 +489,7 @@
           </div>
         </div>
 
-        <!-- Section 2: Input & Gestures -->
+        <!-- Section 3: Input & Gestures -->
         <div class="settings-section" data-section="input">
           <div class="section-header">
             <img src="/icons/mouse.svg" style="width:20px;height:20px;color:var(--accent-green);" alt="Input">
@@ -434,7 +564,7 @@
           </div>
         </div>
 
-        <!-- Section 3: Touch Deck & SVG Icons -->
+        <!-- Section 4: Touch Deck & SVG Icons -->
         <div class="settings-section" data-section="deck">
           <div class="section-header">
             <img src="/icons/grid.svg" style="width:20px;height:20px;color:var(--accent-purple);" alt="Deck">
@@ -473,7 +603,7 @@
           </div>
         </div>
 
-        <!-- Section 4: Security & Network -->
+        <!-- Section 5: Security & Network -->
         <div class="settings-section" data-section="network">
           <div class="section-header">
             <img src="/icons/wifi.svg" style="width:20px;height:20px;color:var(--accent-yellow);" alt="Network">
@@ -527,6 +657,16 @@
       </div>
 
       <div class="form-group">
+        <label class="form-label" data-i18n="card_profile_label">Category Profile</label>
+        <select id="modalCardProfile" class="form-select">
+          <option value="all" data-i18n="profile_all">🌟 Все</option>
+          <option value="media" data-i18n="profile_media">🛋️ Медиа</option>
+          <option value="server" data-i18n="profile_server">🛠️ Сервер</option>
+          <option value="gaming" data-i18n="profile_gaming">🎮 Игры</option>
+        </select>
+      </div>
+
+      <div class="form-group">
         <label class="form-label" data-i18n="card_type_label">Action Type</label>
         <select id="modalCardType" class="form-select">
           <option value="shortcut" data-i18n="card_type_shortcut">Keyboard Shortcut Combo</option>
@@ -573,11 +713,14 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Scripts -->
+  <script src="/static/js/sound.js"></script>
   <script src="/static/js/i18n.js"></script>
   <script src="/static/js/qrcode.js"></script>
   <script src="/static/js/app.js"></script>
   <script src="/static/js/stream.js"></script>
   <script src="/static/js/deck.js"></script>
+  <script src="/static/js/knob.js"></script>
+  <script src="/static/js/taskmgr.js"></script>
   <script src="/static/js/system.js"></script>
   <script src="/static/js/settings.js"></script>
 </body>
