@@ -53,7 +53,7 @@
 
 ```bash
 # 1. Клонирование репозитория
-git clone https://github.com/manka81/lan-remote.git
+git clone https://github.com/yksyse/lan-remote.git
 cd lan-remote
 
 # 2. Установка зависимостей
