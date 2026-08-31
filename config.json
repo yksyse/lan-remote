@@ -1,0 +1,187 @@
+{
+  "server": {
+    "port": 8080,
+    "pin_code": "",
+    "allowed_subnets": [
+      "*"
+    ]
+  },
+  "stream": {
+    "fps": 30,
+    "quality": 65,
+    "scale": 0.75,
+    "monitor_index": 1
+  },
+  "input": {
+    "mode": "trackpad",
+    "sensitivity": 1.3,
+    "scroll_speed": 1.0,
+    "invert_scroll": false,
+    "long_press_ms": 450,
+    "haptic_feedback": true
+  },
+  "deck": {
+    "grid_columns": 4,
+    "cards": [
+      {
+        "id": "play_pause",
+        "title": "Play / Pause",
+        "icon": "play",
+        "color": "#10b981",
+        "type": "media",
+        "payload": {
+          "action": "play_pause"
+        }
+      },
+      {
+        "id": "vol_up",
+        "title": "Volume Up",
+        "icon": "volume_up",
+        "color": "#3b82f6",
+        "type": "media",
+        "payload": {
+          "action": "vol_up"
+        }
+      },
+      {
+        "id": "vol_down",
+        "title": "Volume Down",
+        "icon": "volume_down",
+        "color": "#3b82f6",
+        "type": "media",
+        "payload": {
+          "action": "vol_down"
+        }
+      },
+      {
+        "id": "mute",
+        "title": "Mute Sound",
+        "icon": "volume_mute",
+        "color": "#6b7280",
+        "type": "system",
+        "payload": {
+          "action": "toggle_mute"
+        }
+      },
+      {
+        "id": "show_desktop",
+        "title": "Desktop",
+        "icon": "desktop",
+        "color": "#8b5cf6",
+        "type": "shortcut",
+        "payload": {
+          "keys": [
+            "win",
+            "d"
+          ]
+        }
+      },
+      {
+        "id": "task_mgr",
+        "title": "Task Manager",
+        "icon": "activity",
+        "color": "#f59e0b",
+        "type": "shortcut",
+        "payload": {
+          "keys": [
+            "ctrl",
+            "shift",
+            "esc"
+          ]
+        }
+      },
+      {
+        "id": "file_explorer",
+        "title": "Explorer",
+        "icon": "folder",
+        "color": "#3b82f6",
+        "type": "shortcut",
+        "payload": {
+          "keys": [
+            "win",
+            "e"
+          ]
+        }
+      },
+      {
+        "id": "terminal",
+        "title": "Terminal",
+        "icon": "terminal",
+        "color": "#111827",
+        "type": "command",
+        "payload": {
+          "command": "wt.exe || powershell.exe"
+        }
+      },
+      {
+        "id": "screen_off",
+        "title": "Screen Off",
+        "icon": "monitor_off",
+        "color": "#4b5563",
+        "type": "power",
+        "payload": {
+          "action": "screen_off"
+        }
+      },
+      {
+        "id": "lock_pc",
+        "title": "Lock PC",
+        "icon": "lock",
+        "color": "#f97316",
+        "type": "power",
+        "payload": {
+          "action": "lock"
+        }
+      },
+      {
+        "id": "sleep_pc",
+        "title": "Sleep",
+        "icon": "moon",
+        "color": "#6366f1",
+        "type": "power",
+        "payload": {
+          "action": "sleep"
+        }
+      },
+      {
+        "id": "copy",
+        "title": "Copy",
+        "icon": "copy",
+        "color": "#14b8a6",
+        "type": "shortcut",
+        "payload": {
+          "keys": [
+            "ctrl",
+            "c"
+          ]
+        }
+      },
+      {
+        "id": "paste",
+        "title": "Paste",
+        "icon": "clipboard",
+        "color": "#06b6d4",
+        "type": "shortcut",
+        "payload": {
+          "keys": [
+            "ctrl",
+            "v"
+          ]
+        }
+      },
+      {
+        "id": "alt_tab",
+        "title": "Alt + Tab",
+        "icon": "layers",
+        "color": "#8b5cf6",
+        "type": "shortcut",
+        "payload": {
+          "keys": [
+            "alt",
+            "tab"
+          ]
+        }
+      }
+    ]
+  }
+}
