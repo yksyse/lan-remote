@@ -71,6 +71,40 @@
   user-select: none;
 }
 
+/* Universal Input Reset (Ensures NO white backgrounds in inputs) */
+input[type="text"],
+input[type="password"],
+input[type="number"],
+input[type="search"],
+textarea,
+select {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  outline: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  transition: all 0.15s ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-dim) !important;
+  opacity: 1;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent-blue) !important;
+  background-color: var(--bg-tertiary) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
+}
+
 /* Custom Sleek Dark Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
@@ -173,19 +207,14 @@ header.app-header {
 }
 
 .lang-selector select {
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-secondary) !important;
   border: 1px solid var(--border);
-  color: var(--text-main);
+  color: var(--text-main) !important;
   font-size: 0.8rem;
   font-weight: 600;
-  padding: 5px 8px;
+  padding: 6px 10px;
   border-radius: var(--radius-md);
   cursor: pointer;
-}
-
-.lang-selector select:focus {
-  outline: none;
-  border-color: var(--accent-blue);
 }
 
 /* Nav Tabs */
@@ -242,20 +271,10 @@ nav.nav-tabs {
 }
 
 .header-search input {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
-  color: var(--text-main);
   padding: 6px 12px 6px 32px;
   border-radius: var(--radius-full);
   font-size: 0.82rem;
   width: 100%;
-  transition: all 0.2s ease;
-}
-
-.header-search input:focus {
-  border-color: var(--accent-blue);
-  outline: none;
-  background-color: var(--bg-tertiary);
 }
 
 .header-search svg {
@@ -389,7 +408,7 @@ canvas#streamCanvas {
   display: block;
 }
 
-/* Floating Disappearing Hint Badge */
+/* Floating Hint */
 .trackpad-hint {
   position: absolute;
   top: 16px;
@@ -575,22 +594,14 @@ canvas#streamCanvas {
 
 .kbd-text-input {
   flex: 1;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
-  color: var(--text-main);
   padding: 8px 12px;
   border-radius: var(--radius-sm);
   font-size: 0.88rem;
   user-select: text;
 }
 
-.kbd-text-input:focus {
-  outline: none;
-  border-color: var(--accent-blue);
-}
-
 /* -------------------------------------------------------------------
-   Tab 2: Touch Deck (with Profiles Tabs)
+   Tab 2: Touch Deck
    ------------------------------------------------------------------- */
 .deck-header {
   display: flex;
@@ -794,7 +805,7 @@ canvas#streamCanvas {
   gap: 8px;
 }
 
-/* Hardware Gauges with Sparklines */
+/* Hardware Gauges */
 .metrics-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -853,7 +864,7 @@ canvas#streamCanvas {
   transition: width 0.3s ease, background-color 0.3s ease;
 }
 
-/* Media, Radial Knob & Power Grid */
+/* Quick Controls */
 .quick-controls-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -878,7 +889,7 @@ canvas#streamCanvas {
   gap: 8px;
 }
 
-/* Radial Volume Knob Container */
+/* Radial Volume Knob */
 .knob-row-wrapper {
   display: flex;
   align-items: center;
@@ -909,7 +920,7 @@ canvas#streamCanvas {
 input[type="range"].volume-slider {
   flex: 1;
   -webkit-appearance: none;
-  background: var(--bg-tertiary);
+  background: var(--bg-tertiary) !important;
   height: 8px;
   border-radius: var(--radius-full);
   outline: none;
@@ -932,7 +943,7 @@ input[type="range"].volume-slider::-webkit-slider-thumb {
   justify-content: center;
 }
 
-/* Clean, Non-wrapping Power Actions Layout */
+/* Power Actions */
 .power-actions-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -1025,9 +1036,6 @@ input[type="range"].volume-slider::-webkit-slider-thumb {
 
 .taskmgr-search-input {
   width: 100%;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  color: var(--text-main);
   padding: 7px 10px 7px 32px;
   border-radius: var(--radius-md);
   font-size: 0.85rem;
@@ -1099,9 +1107,9 @@ input[type="range"].volume-slider::-webkit-slider-thumb {
 }
 
 .priority-mini-select {
-  background: var(--bg-secondary);
+  background: var(--bg-secondary) !important;
   border: 1px solid var(--border);
-  color: var(--text-main);
+  color: var(--text-main) !important;
   font-size: 0.7rem;
   padding: 3px 5px;
   border-radius: var(--radius-sm);
@@ -1125,12 +1133,45 @@ input[type="range"].volume-slider::-webkit-slider-thumb {
   gap: 6px;
 }
 
-/* Clipboard History 5 Items List */
+/* -------------------------------------------------------------------
+   Clipboard Synchronization & History
+   ------------------------------------------------------------------- */
+.clipboard-panel {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.clipboard-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.clipboard-input {
+  flex: 1;
+  background-color: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-main) !important;
+  padding: 9px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  user-select: text;
+}
+
+.clipboard-input:focus {
+  background-color: var(--bg-tertiary) !important;
+  border-color: var(--accent-blue) !important;
+}
+
 .clipboard-history-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 6px;
 }
 
 .clipboard-history-item {
@@ -1143,6 +1184,11 @@ input[type="range"].volume-slider::-webkit-slider-thumb {
   border-radius: var(--radius-md);
   font-size: 0.82rem;
   gap: 10px;
+  transition: background 0.15s ease;
+}
+
+.clipboard-history-item:hover {
+  background: var(--bg-tertiary);
 }
 
 .clipboard-item-text {
@@ -1170,19 +1216,11 @@ input[type="range"].volume-slider::-webkit-slider-thumb {
 
 .cmd-input {
   flex: 1;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
-  color: var(--text-main);
   font-family: var(--font-mono);
   padding: 8px 12px;
   border-radius: var(--radius-md);
   font-size: 0.85rem;
   user-select: text;
-}
-
-.cmd-input:focus {
-  outline: none;
-  border-color: var(--accent-blue);
 }
 
 .cmd-output {
@@ -1220,21 +1258,11 @@ input[type="range"].volume-slider::-webkit-slider-thumb {
 
 .settings-search-input {
   width: 100%;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border);
-  color: var(--text-main);
   padding: 12px 16px 12px 42px;
   border-radius: var(--radius-lg);
   font-size: 0.95rem;
   user-select: text;
   box-shadow: var(--shadow-sm);
-  transition: all 0.2s ease;
-}
-
-.settings-search-input:focus {
-  outline: none;
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
 }
 
 .settings-search-bar svg {
@@ -1301,21 +1329,6 @@ input[type="range"].volume-slider::-webkit-slider-thumb {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-select.setting-select, input.setting-input {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
-  color: var(--text-main);
-  padding: 7px 12px;
-  border-radius: var(--radius-md);
-  font-size: 0.85rem;
-  user-select: text;
-}
-
-select.setting-select:focus, input.setting-input:focus {
-  outline: none;
-  border-color: var(--accent-blue);
 }
 
 /* Switch Toggle */
@@ -1507,18 +1520,10 @@ input:checked + .slider:before {
 }
 
 .form-input, .form-select {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
-  color: var(--text-main);
   padding: 8px 12px;
   border-radius: var(--radius-md);
   font-size: 0.88rem;
   user-select: text;
-}
-
-.form-input:focus, .form-select:focus {
-  outline: none;
-  border-color: var(--accent-blue);
 }
 
 .modal-actions {
@@ -1663,7 +1668,6 @@ input:checked + .slider:before {
   .power-actions-list {
     grid-template-columns: repeat(2, 1fr);
   }
-  /* Mobile safe settings items */
   .setting-item {
     flex-direction: column;
     align-items: flex-start;
