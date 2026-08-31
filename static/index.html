@@ -17,36 +17,45 @@
   <!-- Top Header Navigation -->
   <header class="app-header">
     <div class="brand">
-      <img src="/icons/desktop.svg" class="brand-icon" alt="LAN Remote Logo">
-      <span>LAN Remote</span>
+      <img src="/icons/desktop.svg" class="brand-icon" alt="Logo">
+      <span data-i18n="app_title">LAN Remote</span>
       <div id="statusBadge" class="status-badge">
-        <span class="status-dot"></span>Connecting...
+        <span class="status-dot"></span><span data-i18n="connecting">Connecting...</span>
       </div>
     </div>
 
     <!-- Search in Header for Quick Access -->
     <div class="header-search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      <input type="text" id="headerSearchInput" placeholder="Search settings (Ctrl+K)...">
+      <input type="text" id="headerSearchInput" data-i18n-placeholder="search_placeholder" placeholder="Search settings (Ctrl+K)...">
+    </div>
+
+    <!-- Language Selector Dropdown in Header -->
+    <div class="lang-selector">
+      <select class="lang-selector-select">
+        <option value="ru">🇷🇺 Русский</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="de">🇩🇪 Deutsch</option>
+      </select>
     </div>
 
     <!-- Main Navigation Tabs -->
     <nav class="nav-tabs">
       <button class="tab-btn active" data-tab="stream">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-        <span>Screen</span>
+        <img src="/icons/desktop.svg" style="width:16px;height:16px;" alt="Screen">
+        <span data-i18n="tab_screen">Screen</span>
       </button>
       <button class="tab-btn" data-tab="deck">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-        <span>Deck</span>
+        <img src="/icons/grid.svg" style="width:16px;height:16px;" alt="Deck">
+        <span data-i18n="tab_deck">Deck</span>
       </button>
       <button class="tab-btn" data-tab="system">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-        <span>System</span>
+        <img src="/icons/activity.svg" style="width:16px;height:16px;" alt="System">
+        <span data-i18n="tab_system">System</span>
       </button>
       <button class="tab-btn" data-tab="settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        <span>Settings</span>
+        <img src="/icons/settings.svg" style="width:16px;height:16px;" alt="Settings">
+        <span data-i18n="tab_settings">Settings</span>
       </button>
     </nav>
   </header>
@@ -59,32 +68,35 @@
       <div class="stream-container">
         <canvas id="streamCanvas" width="1920" height="1080"></canvas>
         
-        <!-- Virtual Trackpad Touch Overlay for Mobile -->
-        <div id="trackpadOverlay" class="trackpad-overlay active">
-          <div class="trackpad-hint">Touchpad Mode: 1 finger move & tap, 2 fingers scroll, long press right-click</div>
+        <!-- Virtual Trackpad Touch Overlay (Transparent touch surface) -->
+        <div id="trackpadOverlay" class="trackpad-overlay active"></div>
+
+        <!-- Floating Hint (Fades out automatically) -->
+        <div id="trackpadHint" class="trackpad-hint" data-i18n="trackpad_hint">
+          Touchpad Mode: 1 finger move & tap, 2 fingers scroll, long press right-click
         </div>
 
         <!-- Floating Quick Toolbar -->
         <div class="stream-toolbar">
-          <button id="toggleInputModeBtn" class="tool-btn active" title="Toggle Trackpad / Direct Touch">
-            <img src="/icons/mouse.svg" style="width:18px;height:18px;" alt="Mouse Mode">
+          <button id="toggleInputModeBtn" class="tool-btn active" data-i18n-title="input_mode_btn" title="Toggle Trackpad / Direct Touch">
+            <img src="/icons/mouse.svg" alt="Mouse Mode">
           </button>
-          <button id="toggleKeyboardBtn" class="tool-btn" title="Toggle Virtual Keyboard">
-            <img src="/icons/keyboard.svg" style="width:18px;height:18px;" alt="Keyboard">
+          <button id="toggleKeyboardBtn" class="tool-btn" data-i18n-title="keyboard_btn" title="Virtual Keyboard">
+            <img src="/icons/keyboard.svg" alt="Keyboard">
           </button>
-          <button id="toggleFullscreenBtn" class="tool-btn" title="Fullscreen">
-            <img src="/icons/maximize.svg" style="width:18px;height:18px;" alt="Fullscreen">
+          <button id="toggleFullscreenBtn" class="tool-btn" data-i18n-title="fullscreen_btn" title="Fullscreen">
+            <img src="/icons/maximize.svg" alt="Fullscreen">
           </button>
           <div class="stream-stats-badge">
-            Ping: <span id="streamPingStat">--</span>
+            <span data-i18n="ping_label">Ping</span>: <span id="streamPingStat">--</span>
           </div>
         </div>
 
         <!-- Sliding Virtual Keyboard Overlay -->
         <div id="keyboardDrawer" class="keyboard-drawer">
           <div class="kbd-input-row">
-            <input type="text" id="kbdTextInput" class="kbd-text-input" placeholder="Type text and press Send..." />
-            <button id="kbdSendTextBtn" class="btn-primary" style="padding:6px 14px;">Send</button>
+            <input type="text" id="kbdTextInput" class="kbd-text-input" data-i18n-placeholder="type_text_placeholder" placeholder="Type text and press Send..." />
+            <button id="kbdSendTextBtn" class="btn-primary" style="padding:6px 14px;" data-i18n="send_btn">Send</button>
           </div>
           <div class="kbd-row">
             <button class="kbd-key" data-key="esc">Esc</button>
@@ -120,11 +132,11 @@
     <!-- TAB 2: TOUCH DECK (MACRO GRID) -->
     <section id="tab-deck" class="tab-pane">
       <div class="deck-header">
-        <div class="deck-title">Touch Deck Actions</div>
+        <div class="deck-title" data-i18n="deck_title">Touch Deck Actions</div>
         <div class="deck-actions">
           <button id="addDeckCardBtn" class="btn-primary">
             <img src="/icons/plus.svg" style="width:16px;height:16px;" alt="Add">
-            <span>Add Action</span>
+            <span data-i18n="add_action_btn">Add Action</span>
           </button>
         </div>
       </div>
@@ -142,8 +154,8 @@
         <div class="metrics-row">
           <div class="metric-card">
             <div class="metric-header">
-              <span>CPU Usage</span>
-              <img src="/icons/cpu.svg" style="width:18px;height:18px;" alt="CPU">
+              <span data-i18n="cpu_usage">CPU Usage</span>
+              <img src="/icons/cpu.svg" alt="CPU">
             </div>
             <div id="cpuPercentVal" class="metric-value">--%</div>
             <div class="progress-bar-bg">
@@ -153,8 +165,8 @@
 
           <div class="metric-card">
             <div class="metric-header">
-              <span>RAM Memory</span>
-              <img src="/icons/activity.svg" style="width:18px;height:18px;" alt="RAM">
+              <span data-i18n="ram_memory">RAM Memory</span>
+              <img src="/icons/activity.svg" alt="RAM">
             </div>
             <div id="memPercentVal" class="metric-value">--%</div>
             <div class="progress-bar-bg">
@@ -165,8 +177,8 @@
 
           <div class="metric-card">
             <div class="metric-header">
-              <span>Disks & Storage</span>
-              <img src="/icons/hard_drive.svg" style="width:18px;height:18px;" alt="Disk">
+              <span data-i18n="disks_storage">Disks & Storage</span>
+              <img src="/icons/hard_drive.svg" alt="Disk">
             </div>
             <div id="disksContainer" style="display:flex;flex-direction:column;gap:6px;">
               <!-- Dynamic disks list -->
@@ -181,12 +193,12 @@
           <div class="control-panel">
             <div class="control-panel-title">
               <img src="/icons/volume_up.svg" style="width:18px;height:18px;" alt="Audio">
-              <span>Master Volume</span>
+              <span data-i18n="master_volume">Master Volume</span>
             </div>
             <div class="volume-slider-row">
               <input type="range" id="sysVolumeSlider" class="volume-slider" min="0" max="100" value="50">
               <span id="sysVolumeLabel" style="font-family:var(--font-mono);font-size:0.85rem;width:40px;">50%</span>
-              <button id="sysMuteBtn" class="btn-secondary" style="padding:6px 10px;">Mute</button>
+              <button id="sysMuteBtn" class="btn-secondary" style="padding:6px 10px;" data-i18n="mute_btn">Mute</button>
             </div>
             <div class="media-btn-row">
               <button class="btn-secondary" data-media="prev" title="Previous Track"><img src="/icons/restart.svg" style="width:16px;height:16px;transform:rotate(-90deg);" alt="Prev"></button>
@@ -199,14 +211,14 @@
           <div class="control-panel">
             <div class="control-panel-title">
               <img src="/icons/power.svg" style="width:18px;height:18px;" alt="Power">
-              <span>Power Actions</span>
+              <span data-i18n="power_actions">Power Actions</span>
             </div>
             <div class="power-btn-row">
-              <button class="btn-secondary" data-power="lock">Lock</button>
-              <button class="btn-secondary" data-power="screen_off">Screen Off</button>
-              <button class="btn-secondary" data-power="sleep">Sleep</button>
-              <button class="btn-secondary" data-power="restart" style="color:var(--accent-yellow);">Restart</button>
-              <button class="btn-secondary" data-power="shutdown" style="color:var(--accent-red);">Shutdown</button>
+              <button class="btn-secondary" data-power="lock" data-i18n="act_lock">Lock</button>
+              <button class="btn-secondary" data-power="screen_off" data-i18n="act_screen_off">Screen Off</button>
+              <button class="btn-secondary" data-power="sleep" data-i18n="act_sleep">Sleep</button>
+              <button class="btn-secondary" data-power="restart" style="color:var(--accent-yellow);" data-i18n="act_restart">Restart</button>
+              <button class="btn-secondary" data-power="shutdown" style="color:var(--accent-red);" data-i18n="act_shutdown">Shutdown</button>
             </div>
             <div id="sysHostInfo" style="font-size:0.75rem;color:var(--text-dim);margin-top:6px;">--</div>
           </div>
@@ -217,13 +229,13 @@
         <div class="command-runner">
           <div class="control-panel-title">
             <img src="/icons/terminal.svg" style="width:18px;height:18px;" alt="Terminal">
-            <span>Remote Command Execution</span>
+            <span data-i18n="cmd_runner_title">Remote Command Execution</span>
           </div>
           <div class="cmd-input-group">
-            <input type="text" id="cmdRunnerInput" class="cmd-input" placeholder="Enter shell command (e.g. dir, ipconfig, docker ps)...">
-            <button id="cmdRunnerBtn" class="btn-primary">Run</button>
+            <input type="text" id="cmdRunnerInput" class="cmd-input" data-i18n-placeholder="cmd_runner_placeholder" placeholder="Enter shell command...">
+            <button id="cmdRunnerBtn" class="btn-primary" data-i18n="cmd_runner_btn">Run</button>
           </div>
-          <div id="cmdRunnerOutput" class="cmd-output">Ready for commands...</div>
+          <div id="cmdRunnerOutput" class="cmd-output" data-i18n="cmd_ready">Ready for commands...</div>
         </div>
 
       </div>
@@ -236,62 +248,83 @@
         <!-- Live Settings Search Input -->
         <div class="settings-search-bar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input type="text" id="settingsSearchInput" class="settings-search-input" placeholder="Search any setting, FPS, quality, touch gesture, SVG icon...">
+          <input type="text" id="settingsSearchInput" class="settings-search-input" data-i18n-placeholder="settings_search_placeholder" placeholder="Search any setting...">
+        </div>
+
+        <!-- Section 0: Language -->
+        <div class="settings-section" data-section="language">
+          <div class="section-header">
+            <img src="/icons/sliders.svg" style="width:20px;height:20px;color:var(--accent-blue);" alt="Language">
+            <h3 data-i18n="sec_language">Interface Language</h3>
+          </div>
+          <div class="setting-item" data-tags="language язык sprache russian english german">
+            <div class="setting-meta">
+              <div class="setting-title" data-i18n="setting_lang_title">System Language</div>
+              <div class="setting-desc" data-i18n="sec_language_desc">Choose language for UI and navigation</div>
+            </div>
+            <div class="setting-control">
+              <select class="setting-select lang-selector-select">
+                <option value="ru">🇷🇺 Русский</option>
+                <option value="en">🇬🇧 English</option>
+                <option value="de">🇩🇪 Deutsch</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         <!-- Section 1: Video & Stream -->
         <div class="settings-section" data-section="stream">
           <div class="section-header">
             <img src="/icons/desktop.svg" style="width:20px;height:20px;color:var(--accent-blue);" alt="Video">
-            <h3>Video & Screen Stream</h3>
+            <h3 data-i18n="sec_stream">Video & Screen Stream</h3>
           </div>
 
-          <div class="setting-item" data-tags="fps rate frame smoothness">
+          <div class="setting-item" data-tags="fps rate frame smoothness частота кадров">
             <div class="setting-meta">
-              <div class="setting-title">Target Frame Rate (FPS)</div>
-              <div class="setting-desc">Smoothness of the screen stream (15, 30, or 60 FPS)</div>
+              <div class="setting-title" data-i18n="setting_fps_title">Target Frame Rate (FPS)</div>
+              <div class="setting-desc" data-i18n="setting_fps_desc">Smoothness of the screen stream (15, 30, or 60 FPS)</div>
             </div>
             <div class="setting-control">
               <select id="settingStreamFps" class="setting-select">
-                <option value="15">15 FPS (Battery Saver)</option>
-                <option value="30">30 FPS (Balanced)</option>
-                <option value="60">60 FPS (Ultra Smooth)</option>
+                <option value="15" data-i18n="fps_15">15 FPS (Battery Saver)</option>
+                <option value="30" data-i18n="fps_30">30 FPS (Balanced)</option>
+                <option value="60" data-i18n="fps_60">60 FPS (Ultra Smooth)</option>
               </select>
             </div>
           </div>
 
-          <div class="setting-item" data-tags="quality compression bitrate jpeg webp">
+          <div class="setting-item" data-tags="quality compression bitrate jpeg webp качество">
             <div class="setting-meta">
-              <div class="setting-title">Image Quality</div>
-              <div class="setting-desc">JPEG compression quality (lower = lower latency and bandwidth)</div>
+              <div class="setting-title" data-i18n="setting_quality_title">Image Quality</div>
+              <div class="setting-desc" data-i18n="setting_quality_desc">JPEG compression quality (lower = lower latency and bandwidth)</div>
             </div>
             <div class="setting-control">
               <select id="settingStreamQuality" class="setting-select">
-                <option value="45">Low (Fastest, ~20 KB/frame)</option>
-                <option value="65">Medium (Optimal, ~50 KB/frame)</option>
-                <option value="85">High (Crisp Text, ~120 KB/frame)</option>
+                <option value="45" data-i18n="quality_low">Low (Fastest, ~20 KB/frame)</option>
+                <option value="65" data-i18n="quality_med">Medium (Optimal, ~50 KB/frame)</option>
+                <option value="85" data-i18n="quality_high">High (Crisp Text, ~120 KB/frame)</option>
               </select>
             </div>
           </div>
 
-          <div class="setting-item" data-tags="scale resolution resize 720p 1080p">
+          <div class="setting-item" data-tags="scale resolution resize 720p 1080p масштаб">
             <div class="setting-meta">
-              <div class="setting-title">Resolution Scaling</div>
-              <div class="setting-desc">Downscale screen resolution before encoding</div>
+              <div class="setting-title" data-i18n="setting_scale_title">Resolution Scaling</div>
+              <div class="setting-desc" data-i18n="setting_scale_desc">Downscale screen resolution before encoding</div>
             </div>
             <div class="setting-control">
               <select id="settingStreamScale" class="setting-select">
-                <option value="0.5">50% Scale (High Speed)</option>
-                <option value="0.75">75% Scale (Recommended)</option>
-                <option value="1.0">100% Native Resolution</option>
+                <option value="0.5" data-i18n="scale_50">50% Scale (High Speed)</option>
+                <option value="0.75" data-i18n="scale_75">75% Scale (Recommended)</option>
+                <option value="1.0" data-i18n="scale_100">100% Native Resolution</option>
               </select>
             </div>
           </div>
 
-          <div class="setting-item" data-tags="monitor display screen multimonitor">
+          <div class="setting-item" data-tags="monitor display screen multimonitor экран">
             <div class="setting-meta">
-              <div class="setting-title">Capture Monitor</div>
-              <div class="setting-desc">Select which physical display to stream</div>
+              <div class="setting-title" data-i18n="setting_monitor_title">Capture Monitor</div>
+              <div class="setting-desc" data-i18n="setting_monitor_desc">Select which physical display to stream</div>
             </div>
             <div class="setting-control">
               <select id="settingStreamMonitor" class="setting-select">
@@ -305,41 +338,41 @@
         <div class="settings-section" data-section="input">
           <div class="section-header">
             <img src="/icons/mouse.svg" style="width:20px;height:20px;color:var(--accent-green);" alt="Input">
-            <h3>Input & Touch Gestures</h3>
+            <h3 data-i18n="sec_input">Input & Touch Gestures</h3>
           </div>
 
-          <div class="setting-item" data-tags="mouse touch mode trackpad direct">
+          <div class="setting-item" data-tags="mouse touch mode trackpad direct ввод тачпад">
             <div class="setting-meta">
-              <div class="setting-title">Default Input Mode</div>
-              <div class="setting-desc">Virtual Trackpad (relative cursor delta) or Direct Touch (tap coordinates)</div>
+              <div class="setting-title" data-i18n="setting_input_mode_title">Default Input Mode</div>
+              <div class="setting-desc" data-i18n="setting_input_mode_desc">Virtual Trackpad or Direct Touch</div>
             </div>
             <div class="setting-control">
               <select id="settingInputMode" class="setting-select">
-                <option value="trackpad">Virtual Trackpad</option>
-                <option value="direct">Direct Coordinate Touch</option>
+                <option value="trackpad" data-i18n="mode_trackpad">Virtual Trackpad</option>
+                <option value="direct" data-i18n="mode_direct">Direct Coordinate Touch</option>
               </select>
             </div>
           </div>
 
-          <div class="setting-item" data-tags="sensitivity cursor speed mouse">
+          <div class="setting-item" data-tags="sensitivity cursor speed mouse чувствительность">
             <div class="setting-meta">
-              <div class="setting-title">Trackpad Sensitivity</div>
-              <div class="setting-desc">Multiplier for relative finger motion speed</div>
+              <div class="setting-title" data-i18n="setting_sens_title">Trackpad Sensitivity</div>
+              <div class="setting-desc" data-i18n="setting_sens_desc">Multiplier for relative finger motion speed</div>
             </div>
             <div class="setting-control">
               <select id="settingInputSensitivity" class="setting-select">
-                <option value="0.8">0.8x (Slow & Precise)</option>
-                <option value="1.0">1.0x (Normal)</option>
-                <option value="1.3">1.3x (Fast)</option>
-                <option value="1.8">1.8x (Very Fast)</option>
+                <option value="0.8" data-i18n="sens_slow">0.8x (Slow & Precise)</option>
+                <option value="1.0" data-i18n="sens_norm">1.0x (Normal)</option>
+                <option value="1.3" data-i18n="sens_fast">1.3x (Fast)</option>
+                <option value="1.8" data-i18n="sens_vfast">1.8x (Very Fast)</option>
               </select>
             </div>
           </div>
 
-          <div class="setting-item" data-tags="scroll wheel reverse invert direction">
+          <div class="setting-item" data-tags="scroll wheel reverse invert direction скролл">
             <div class="setting-meta">
-              <div class="setting-title">Invert 2-Finger Scroll</div>
-              <div class="setting-desc">Reverse vertical two-finger scrolling direction</div>
+              <div class="setting-title" data-i18n="setting_invert_scroll_title">Invert 2-Finger Scroll</div>
+              <div class="setting-desc" data-i18n="setting_invert_scroll_desc">Reverse vertical two-finger scrolling direction</div>
             </div>
             <div class="setting-control">
               <label class="switch">
@@ -349,10 +382,10 @@
             </div>
           </div>
 
-          <div class="setting-item" data-tags="haptic feedback vibration tactile">
+          <div class="setting-item" data-tags="haptic feedback vibration tactile вибрация">
             <div class="setting-meta">
-              <div class="setting-title">Haptic Vibration Feedback</div>
-              <div class="setting-desc">Vibrate phone on tap clicks and long-press right-clicks</div>
+              <div class="setting-title" data-i18n="setting_haptic_title">Haptic Vibration Feedback</div>
+              <div class="setting-desc" data-i18n="setting_haptic_desc">Vibrate phone on tap clicks and long-press right-clicks</div>
             </div>
             <div class="setting-control">
               <label class="switch">
@@ -367,34 +400,34 @@
         <div class="settings-section" data-section="deck">
           <div class="section-header">
             <img src="/icons/grid.svg" style="width:20px;height:20px;color:var(--accent-purple);" alt="Deck">
-            <h3>Touch Deck & Custom SVG Icons</h3>
+            <h3 data-i18n="sec_deck">Touch Deck & Custom SVG Icons</h3>
           </div>
 
-          <div class="setting-item" data-tags="grid layout columns cards">
+          <div class="setting-item" data-tags="grid layout columns cards сетка колонки">
             <div class="setting-meta">
-              <div class="setting-title">Deck Grid Columns</div>
-              <div class="setting-desc">Number of action cards per row on larger screens</div>
+              <div class="setting-title" data-i18n="setting_columns_title">Deck Grid Columns</div>
+              <div class="setting-desc" data-i18n="setting_columns_desc">Number of action cards per row on larger screens</div>
             </div>
             <div class="setting-control">
               <select id="settingDeckColumns" class="setting-select">
                 <option value="3">3 Columns</option>
-                <option value="4">4 Columns (Default)</option>
+                <option value="4">4 Columns</option>
                 <option value="5">5 Columns</option>
                 <option value="6">6 Columns</option>
               </select>
             </div>
           </div>
 
-          <div class="setting-item" data-tags="svg icons library custom upload">
+          <div class="setting-item" data-tags="svg icons library custom upload иконки">
             <div class="setting-meta">
-              <div class="setting-title">SVG Icons Library & Upload</div>
-              <div class="setting-desc">Browse embedded icons or upload custom .svg files for your buttons</div>
+              <div class="setting-title" data-i18n="setting_svg_lib_title">SVG Icons Library & Upload</div>
+              <div class="setting-desc" data-i18n="setting_svg_lib_desc">Browse embedded icons or upload custom .svg files</div>
             </div>
             <div class="setting-control">
               <input type="file" id="svgUploadInput" accept=".svg" style="display:none;">
               <button id="svgUploadBtn" class="btn-primary" style="padding:6px 12px;font-size:0.8rem;">
                 <img src="/icons/plus.svg" style="width:14px;height:14px;" alt="Upload">
-                <span>Upload SVG</span>
+                <span data-i18n="upload_svg_btn">Upload SVG</span>
               </button>
             </div>
           </div>
@@ -408,23 +441,23 @@
         <div class="settings-section" data-section="network">
           <div class="section-header">
             <img src="/icons/wifi.svg" style="width:20px;height:20px;color:var(--accent-yellow);" alt="Network">
-            <h3>Security & Local Network</h3>
+            <h3 data-i18n="sec_network">Security & Local Network</h3>
           </div>
 
-          <div class="setting-item" data-tags="pin password security token">
+          <div class="setting-item" data-tags="pin password security token пин пароль">
             <div class="setting-meta">
-              <div class="setting-title">Access PIN Code</div>
-              <div class="setting-desc">Optional PIN requirement to connect (leave blank to disable)</div>
+              <div class="setting-title" data-i18n="setting_pin_title">Access PIN Code</div>
+              <div class="setting-desc" data-i18n="setting_pin_desc">Optional PIN requirement (leave blank for open LAN access)</div>
             </div>
             <div class="setting-control">
-              <input type="password" id="settingServerPin" class="setting-input" placeholder="No PIN (Open LAN)" style="width:140px;">
+              <input type="password" id="settingServerPin" class="setting-input" placeholder="No PIN" style="width:140px;">
             </div>
           </div>
 
-          <div class="setting-item" data-tags="port http listen">
+          <div class="setting-item" data-tags="port http listen порт">
             <div class="setting-meta">
-              <div class="setting-title">Web Server Port</div>
-              <div class="setting-desc">Default HTTP port for web dashboard and streaming</div>
+              <div class="setting-title" data-i18n="setting_port_title">Web Server Port</div>
+              <div class="setting-desc" data-i18n="setting_port_desc">HTTP port for web dashboard and streaming</div>
             </div>
             <div class="setting-control">
               <input type="number" id="settingServerPort" class="setting-input" value="8080" style="width:90px;">
@@ -432,9 +465,9 @@
           </div>
 
           <div style="margin-top:10px;">
-            <div class="setting-title" style="margin-bottom:6px;">Active Network IP Addresses:</div>
+            <div class="setting-title" style="margin-bottom:6px;" data-i18n="setting_ips_title">Active Network IP Addresses & Mobile QR Code:</div>
             <div id="settingsNetworkIps">
-              <!-- Rendered by settings.js -->
+              <!-- Rendered with interactive QR code by settings.js -->
             </div>
           </div>
         </div>
@@ -448,23 +481,23 @@
   <div id="deckCardModal" class="modal-backdrop">
     <div class="modal-card">
       <div class="modal-header">
-        <div class="modal-title">Edit Deck Button</div>
+        <div class="modal-title" data-i18n="modal_edit_title">Edit Deck Button</div>
         <button id="closeDeckModalBtn" class="modal-close-btn">&times;</button>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Button Title</label>
-        <input type="text" id="modalCardTitle" class="form-input" placeholder="e.g. Mute Audio">
+        <label class="form-label" data-i18n="card_title_label">Button Title</label>
+        <input type="text" id="modalCardTitle" class="form-input" data-i18n-placeholder="card_title_placeholder" placeholder="e.g. Mute Audio">
       </div>
 
       <div class="form-group">
-        <label class="form-label">Action Type</label>
+        <label class="form-label" data-i18n="card_type_label">Action Type</label>
         <select id="modalCardType" class="form-select">
-          <option value="shortcut">Keyboard Shortcut Combo</option>
-          <option value="command">Shell Command / App Launch</option>
-          <option value="media">Media Control</option>
-          <option value="power">Power Management</option>
-          <option value="system">System Function</option>
+          <option value="shortcut" data-i18n="card_type_shortcut">Keyboard Shortcut Combo</option>
+          <option value="command" data-i18n="card_type_command">Shell Command / App Launch</option>
+          <option value="media" data-i18n="card_type_media">Media Control</option>
+          <option value="power" data-i18n="card_type_power">Power Management</option>
+          <option value="system" data-i18n="card_type_system">System Function</option>
         </select>
       </div>
 
@@ -474,7 +507,7 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">Accent Color</label>
+        <label class="form-label" data-i18n="card_color_label">Accent Color</label>
         <select id="modalCardColor" class="form-select">
           <option value="#3b82f6">Blue (#3b82f6)</option>
           <option value="#10b981">Green (#10b981)</option>
@@ -487,15 +520,15 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">Select SVG Icon</label>
-        <div id="modalIconPicker" class="svg-library-grid" style="max-height:120px;">
+        <label class="form-label" data-i18n="card_icon_label">Select SVG Icon</label>
+        <div id="modalIconPicker" class="svg-library-grid" style="max-height:130px;">
           <!-- Rendered dynamically -->
         </div>
       </div>
 
       <div class="modal-actions">
-        <button id="deleteDeckCardBtn" class="btn-secondary" style="color:var(--accent-red);margin-right:auto;">Delete</button>
-        <button id="saveDeckCardBtn" class="btn-primary">Save Button</button>
+        <button id="deleteDeckCardBtn" class="btn-secondary" style="color:var(--accent-red);margin-right:auto;" data-i18n="delete_btn">Delete</button>
+        <button id="saveDeckCardBtn" class="btn-primary" data-i18n="save_btn">Save Button</button>
       </div>
     </div>
   </div>
@@ -504,6 +537,8 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Scripts -->
+  <script src="/static/js/i18n.js"></script>
+  <script src="/static/js/qrcode.js"></script>
   <script src="/static/js/app.js"></script>
   <script src="/static/js/stream.js"></script>
   <script src="/static/js/deck.js"></script>

@@ -1,4 +1,4 @@
-// Host System Monitor & Quick Controls
+// Host System Monitor & Quick Controls with i18n
 const SystemManager = {
   isUpdatingVolume: false,
 
@@ -45,7 +45,7 @@ const SystemManager = {
         item.style.marginBottom = '8px';
         item.innerHTML = `
           <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:3px;">
-            <span><strong>${d.mount}</strong> (${d.free_gb} GB free)</span>
+            <span><strong>${d.mount}</strong> (${d.free_gb} GB ${I18n.t('free_space')})</span>
             <span>${d.percent}%</span>
           </div>
           <div class="progress-bar-bg">
@@ -62,7 +62,7 @@ const SystemManager = {
       hostEl.textContent = `${data.hostname || ''} | ${data.os || ''} | Uptime: ${data.uptime || ''}`;
     }
 
-    // Volume Slider Sync (if user not dragging)
+    // Volume Slider Sync
     if (!this.isUpdatingVolume) {
       const volSlider = document.getElementById('sysVolumeSlider');
       const volLabel = document.getElementById('sysVolumeLabel');
@@ -147,7 +147,7 @@ const SystemManager = {
       btn.addEventListener('click', async () => {
         const action = btn.dataset.power;
         if (action === 'restart' || action === 'shutdown') {
-          if (!confirm(`Are you sure you want to ${action.toUpperCase()} the server?`)) {
+          if (!confirm(I18n.t('confirm_power'))) {
             return;
           }
         }

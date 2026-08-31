@@ -1,4 +1,4 @@
-// Ultra-Low Latency Canvas Streamer & Input Handler
+// Ultra-Low Latency Canvas Streamer & Enhanced Touch/Gesture Engine
 const StreamManager = {
   ws: null,
   inputWs: null,
@@ -17,14 +17,16 @@ const StreamManager = {
   invertScroll: false,
   hapticFeedback: true,
 
-  // Touch tracking
-  touches: new Map(),
+  // Touch & Gesture tracking
   lastTouchX: 0,
   lastTouchY: 0,
   touchStartTime: 0,
   isDragging: false,
   longPressTimeout: null,
+  hintTimeout: null,
   twoFingerStartY: 0,
+  lastTapTime: 0,
+  isTapAndHold: false,
 
   init() {
     this.canvas = document.getElementById('streamCanvas');
@@ -74,7 +76,7 @@ const StreamManager = {
         return;
       }
 
-      // Binary Blob -> ImageBitmap for fast GPU rendering
+      // Binary Blob -> ImageBitmap for direct GPU texture upload
       try {
         const bmp = await createImageBitmap(event.data);
         if (this.canvas.width !== bmp.width || this.canvas.height !== bmp.height) {
@@ -83,9 +85,7 @@ const StreamManager = {
         }
         this.ctx.drawImage(bmp, 0, 0);
         bmp.close();
-      } catch (err) {
-        // Frame decode error skip
-      }
+      } catch (err) {}
     };
 
     this.ws.onclose = () => {
@@ -142,11 +142,27 @@ const StreamManager = {
     }
   },
 
+  showTrackpadHint() {
+    const hint = document.getElementById('trackpadHint');
+    if (!hint) return;
+
+    hint.classList.add('show');
+    clearTimeout(this.hintTimeout);
+    this.hintTimeout = setTimeout(() => {
+      hint.classList.remove('show');
+    }, 2500);
+  },
+
+  hideTrackpadHint() {
+    const hint = document.getElementById('trackpadHint');
+    if (hint) hint.classList.remove('show');
+  },
+
   setupEvents() {
     const canvas = this.canvas;
     const trackpadOverlay = document.getElementById('trackpadOverlay');
 
-    // 1. Mouse Events on Canvas (Desktop mode)
+    // 1. Mouse Events on Canvas (Desktop client)
     canvas.addEventListener('mousemove', (e) => {
       if (this.inputMode === 'direct') {
         const rect = canvas.getBoundingClientRect();
@@ -176,26 +192,38 @@ const StreamManager = {
       this.sendInput({ type: 'wheel', dy: dy, dx: 0 });
     }, { passive: false });
 
-    // 2. Touch Events for Mobile / Tablet
+    // 2. Touch Gestures (Mobile / Tablet)
     const targetElement = trackpadOverlay || canvas;
 
     targetElement.addEventListener('touchstart', (e) => {
+      this.hideTrackpadHint();
       const touches = e.touches;
-      this.touchStartTime = Date.now();
+      const now = Date.now();
 
       if (touches.length === 1) {
         const touch = touches[0];
         this.lastTouchX = touch.clientX;
         this.lastTouchY = touch.clientY;
+        this.touchStartTime = now;
         this.isDragging = false;
 
-        // Long press for right-click
+        // Double-tap & hold detection for click-and-drag
+        if (now - this.lastTapTime < 280) {
+          this.isTapAndHold = true;
+          this.vibrate(20);
+          this.sendInput({ type: 'down', button: 'left' });
+        } else {
+          this.isTapAndHold = false;
+        }
+        this.lastTapTime = now;
+
+        // Long press -> Right click
         clearTimeout(this.longPressTimeout);
         this.longPressTimeout = setTimeout(() => {
-          if (!this.isDragging) {
+          if (!this.isDragging && !this.isTapAndHold) {
             this.vibrate(30);
             this.sendInput({ type: 'click', button: 'right' });
-            App.showToast('Right Click', 'info');
+            App.showToast(I18n.t('right_click_toast'), 'info');
           }
         }, 450);
 
@@ -248,8 +276,11 @@ const StreamManager = {
       clearTimeout(this.longPressTimeout);
       const elapsed = Date.now() - this.touchStartTime;
 
-      if (!this.isDragging && elapsed < 300) {
-        // Quick tap -> Left click
+      if (this.isTapAndHold) {
+        this.isTapAndHold = false;
+        this.sendInput({ type: 'up', button: 'left' });
+      } else if (!this.isDragging && elapsed < 300) {
+        // Short tap -> Left click
         this.vibrate(15);
         this.sendInput({ type: 'click', button: 'left' });
       }
@@ -263,7 +294,15 @@ const StreamManager = {
         modeBtn.classList.toggle('active', this.inputMode === 'trackpad');
         const overlay = document.getElementById('trackpadOverlay');
         if (overlay) overlay.classList.toggle('active', this.inputMode === 'trackpad');
-        App.showToast(`Input Mode: ${this.inputMode === 'trackpad' ? 'Virtual Trackpad' : 'Direct Touch'}`, 'info');
+        
+        if (this.inputMode === 'trackpad') {
+          this.showTrackpadHint();
+        } else {
+          this.hideTrackpadHint();
+        }
+
+        const modeName = this.inputMode === 'trackpad' ? I18n.t('mode_trackpad') : I18n.t('mode_direct');
+        App.showToast(`${I18n.t('input_mode_toast')}${modeName}`, 'info');
       });
     }
 
@@ -299,7 +338,7 @@ const StreamManager = {
       });
     });
 
-    // Text Input for typing strings / mobile virtual keyboards
+    // Text Input for mobile keyboard string entry
     const textInput = document.getElementById('kbdTextInput');
     const sendTextBtn = document.getElementById('kbdSendTextBtn');
 
@@ -309,7 +348,7 @@ const StreamManager = {
         if (val) {
           this.sendInput({ type: 'type_text', text: val });
           textInput.value = '';
-          App.showToast('Text sent', 'success');
+          App.showToast(I18n.t('text_sent_toast'), 'success');
         }
       };
 

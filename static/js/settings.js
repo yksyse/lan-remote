@@ -1,4 +1,4 @@
-// Modular Settings & Fuzzy Search Controller
+// Modular Settings & Fuzzy Search Controller with i18n & QR Code
 const SettingsManager = {
   allSettingItems: [],
 
@@ -7,10 +7,22 @@ const SettingsManager = {
     this.setupListeners();
     this.setupSvgUploader();
     this.loadMonitors();
+    this.setupLanguageSelectors();
+  },
+
+  setupLanguageSelectors() {
+    document.querySelectorAll('.lang-selector-select').forEach(sel => {
+      sel.value = I18n.currentLang;
+      sel.addEventListener('change', (e) => {
+        I18n.setLanguage(e.target.value);
+        if (window.DeckManager) window.DeckManager.renderDeck();
+        this.renderNetworkInfo();
+        App.showToast(I18n.t('settings_saved_toast'), 'success');
+      });
+    });
   },
 
   setupListeners() {
-    // Search filter input
     const searchInput = document.getElementById('settingsSearchInput');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
@@ -18,8 +30,8 @@ const SettingsManager = {
       });
     }
 
-    // Auto-save on change for any setting input
     document.querySelectorAll('.setting-control select, .setting-control input').forEach(el => {
+      if (el.classList.contains('lang-selector-select')) return;
       el.addEventListener('change', () => this.saveSettingsFromUI());
     });
   },
@@ -42,7 +54,6 @@ const SettingsManager = {
         if (match) visibleCount++;
       });
 
-      // Hide section if no children match
       sec.style.display = visibleCount > 0 ? 'flex' : 'none';
     });
   },
@@ -67,7 +78,6 @@ const SettingsManager = {
   applyConfigToUI(cfg) {
     if (!cfg) return;
 
-    // Stream
     if (cfg.stream) {
       this.setVal('settingStreamFps', cfg.stream.fps);
       this.setVal('settingStreamQuality', cfg.stream.quality);
@@ -75,7 +85,6 @@ const SettingsManager = {
       this.setVal('settingStreamMonitor', cfg.stream.monitor_index);
     }
 
-    // Input
     if (cfg.input) {
       this.setVal('settingInputMode', cfg.input.mode);
       this.setVal('settingInputSensitivity', cfg.input.sensitivity);
@@ -83,7 +92,6 @@ const SettingsManager = {
       this.setVal('settingInputLongPress', cfg.input.long_press_ms);
       this.setCheck('settingInputHaptic', cfg.input.haptic_feedback);
 
-      // Sync to StreamManager
       if (window.StreamManager) {
         window.StreamManager.inputMode = cfg.input.mode || 'trackpad';
         window.StreamManager.sensitivity = cfg.input.sensitivity || 1.3;
@@ -92,12 +100,10 @@ const SettingsManager = {
       }
     }
 
-    // Deck
     if (cfg.deck) {
       this.setVal('settingDeckColumns', cfg.deck.grid_columns || 4);
     }
 
-    // Server / Security
     if (cfg.server) {
       this.setVal('settingServerPort', cfg.server.port || 8080);
       this.setVal('settingServerPin', cfg.server.pin_code || '');
@@ -150,7 +156,7 @@ const SettingsManager = {
         });
       }
       await App.loadConfig();
-      App.showToast('Settings saved', 'success');
+      App.showToast(I18n.t('settings_saved_toast'), 'success');
     } catch (e) {
       App.showToast('Error saving settings', 'error');
     }
@@ -217,6 +223,39 @@ const SettingsManager = {
     const port = App.config?.server?.port || 8080;
     container.innerHTML = '';
 
+    const primaryIp = App.status.local_ips[0] || '127.0.0.1';
+    const primaryUrl = `http://${primaryIp}:${port}`;
+
+    // 1. QR Code Card for Mobile Camera Scanning
+    if (typeof window.renderQRCodeSVG === 'function') {
+      const qrCard = document.createElement('div');
+      qrCard.className = 'qr-connection-card';
+      qrCard.innerHTML = `
+        <div class="qr-code-wrapper">
+          ${window.renderQRCodeSVG(primaryUrl, 130)}
+        </div>
+        <div class="qr-info-content">
+          <div style="font-size:0.88rem;font-weight:700;color:var(--text-main);">${I18n.t('qr_scan_hint')}</div>
+          <div style="font-family:var(--font-mono);font-size:0.9rem;color:var(--accent-blue);word-break:break-all;">${primaryUrl}</div>
+          <div>
+            <button class="btn-primary" style="padding:6px 14px;font-size:0.8rem;" onclick="navigator.clipboard.writeText('${primaryUrl}'); App.showToast(I18n.t('copied_toast'), 'success');">
+              ${I18n.t('copy_btn')} URL
+            </button>
+          </div>
+        </div>
+      `;
+      container.appendChild(qrCard);
+    }
+
+    // 2. All IP addresses list
+    const ipListTitle = document.createElement('div');
+    ipListTitle.style.marginTop = '12px';
+    ipListTitle.style.marginBottom = '6px';
+    ipListTitle.style.fontSize = '0.8rem';
+    ipListTitle.style.color = 'var(--text-muted)';
+    ipListTitle.textContent = 'All Available Network Interfaces:';
+    container.appendChild(ipListTitle);
+
     App.status.local_ips.forEach(ip => {
       const url = `http://${ip}:${port}`;
       const row = document.createElement('div');
@@ -232,7 +271,7 @@ const SettingsManager = {
 
       row.innerHTML = `
         <span>${url}</span>
-        <button class="btn-secondary" style="padding:4px 10px;font-size:0.75rem;" onclick="navigator.clipboard.writeText('${url}'); App.showToast('Copied URL!', 'success');">Copy</button>
+        <button class="btn-secondary" style="padding:4px 10px;font-size:0.75rem;" onclick="navigator.clipboard.writeText('${url}'); App.showToast(I18n.t('copied_toast'), 'success');">${I18n.t('copy_btn')}</button>
       `;
       container.appendChild(row);
     });

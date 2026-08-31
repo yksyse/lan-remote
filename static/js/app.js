@@ -1,16 +1,19 @@
-// Global App Controller
+// Global App Controller with i18n
 const App = {
   activeTab: 'stream',
   config: {},
   status: {},
 
   init() {
+    if (window.I18n) {
+      window.I18n.applyTranslations();
+    }
+
     this.setupTabs();
     this.setupGlobalSearch();
     this.registerServiceWorker();
     this.loadConfig();
 
-    // Start background status polling
     setInterval(() => {
       if (document.visibilityState === 'visible') {
         this.fetchStatus();
@@ -40,13 +43,14 @@ const App = {
       pane.classList.toggle('active', pane.id === `tab-${tabId}`);
     });
 
-    // Notify sub-modules
     if (tabId === 'stream' && window.StreamManager) {
       window.StreamManager.onTabVisible();
     } else if (tabId === 'deck' && window.DeckManager) {
       window.DeckManager.renderDeck();
     } else if (tabId === 'system' && window.SystemManager) {
       window.SystemManager.update();
+    } else if (tabId === 'settings' && window.SettingsManager) {
+      window.SettingsManager.renderNetworkInfo();
     }
   },
 
@@ -74,7 +78,6 @@ const App = {
       });
     });
 
-    // Keyboard shortcut (Ctrl+K or /) to focus search
     window.addEventListener('keydown', (e) => {
       if ((e.ctrlKey && e.key === 'k') || (e.key === '/' && document.activeElement.tagName !== 'INPUT')) {
         e.preventDefault();
@@ -104,7 +107,6 @@ const App = {
       const res = await fetch('/api/status');
       this.status = await res.json();
 
-      // Update badge and sub-modules
       const badge = document.getElementById('statusBadge');
       if (badge && this.status.stream) {
         badge.innerHTML = `<span class="status-dot"></span>${this.status.stream.real_fps} FPS | ${this.status.stream.last_frame_kb} KB`;
@@ -114,7 +116,8 @@ const App = {
     } catch (e) {
       const badge = document.getElementById('statusBadge');
       if (badge) {
-        badge.innerHTML = `<span class="status-dot" style="background:#ef4444;box-shadow:0 0 8px #ef4444"></span>Disconnected`;
+        const disconnectedText = window.I18n ? window.I18n.t('disconnected') : 'Disconnected';
+        badge.innerHTML = `<span class="status-dot" style="background:#ef4444;box-shadow:0 0 8px #ef4444"></span>${disconnectedText}`;
       }
     }
   },
@@ -138,9 +141,7 @@ const App = {
 
   registerServiceWorker() {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(err => {
-        console.log('SW registration note:', err);
-      });
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
   }
 };

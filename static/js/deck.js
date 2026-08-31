@@ -1,4 +1,4 @@
-// Touch Deck & Macro Grid Controller
+// Touch Deck & Macro Grid Controller with i18n
 const DeckManager = {
   cards: [],
   gridColumns: 4,
@@ -33,7 +33,6 @@ const DeckManager = {
       el.className = 'deck-card';
       el.dataset.id = card.id;
 
-      // Color accent glow
       const color = card.color || '#3b82f6';
       el.style.borderColor = `${color}40`;
 
@@ -43,7 +42,7 @@ const DeckManager = {
         </div>
         <div class="deck-card-title">${card.title}</div>
         <div class="deck-card-type">${card.type}</div>
-        <button class="deck-card-edit-btn" title="Edit Card" onclick="event.stopPropagation(); DeckManager.openEditModal('${card.id}')">
+        <button class="deck-card-edit-btn" title="${I18n.t('edit_card_btn')}" onclick="event.stopPropagation(); DeckManager.openEditModal('${card.id}')">
           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
         </button>
       `;
@@ -63,7 +62,7 @@ const DeckManager = {
       const data = await res.json();
       if (data.status === 'ok') {
         const card = this.cards.find(c => c.id === cardId);
-        App.showToast(`Executed: ${card ? card.title : cardId}`, 'success');
+        App.showToast(`${card ? card.title : cardId}`, 'success');
       } else {
         App.showToast(`Error: ${data.message || 'Failed to trigger'}`, 'error');
       }
@@ -95,7 +94,6 @@ const DeckManager = {
       saveBtn.addEventListener('click', () => this.saveCurrentCard());
     }
 
-    // Type change listener to adapt payload fields
     const typeSelect = document.getElementById('modalCardType');
     if (typeSelect) {
       typeSelect.addEventListener('change', () => this.updatePayloadFields());
@@ -109,6 +107,10 @@ const DeckManager = {
     document.getElementById('modalCardColor').value = '#3b82f6';
     document.getElementById('modalCardPayload').value = 'win+d';
     document.getElementById('deleteDeckCardBtn').style.display = 'none';
+    
+    const titleEl = document.querySelector('#deckCardModal .modal-title');
+    if (titleEl) titleEl.textContent = I18n.t('modal_add_title');
+
     this.renderIconPicker('desktop');
     this.updatePayloadFields();
 
@@ -124,6 +126,9 @@ const DeckManager = {
     document.getElementById('modalCardType').value = card.type;
     document.getElementById('modalCardColor').value = card.color || '#3b82f6';
     document.getElementById('deleteDeckCardBtn').style.display = 'block';
+
+    const titleEl = document.querySelector('#deckCardModal .modal-title');
+    if (titleEl) titleEl.textContent = I18n.t('modal_edit_title');
 
     let payloadStr = '';
     if (card.type === 'shortcut') payloadStr = (card.payload?.keys || []).join('+');
@@ -153,7 +158,7 @@ const DeckManager = {
         item.classList.add('selected');
       });
 
-      grid = picker.appendChild(item);
+      picker.appendChild(item);
     });
   },
 
@@ -163,19 +168,19 @@ const DeckManager = {
     const input = document.getElementById('modalCardPayload');
 
     if (type === 'shortcut') {
-      label.textContent = 'Shortcut Keys (e.g. ctrl+shift+esc, win+d, alt+tab):';
+      label.textContent = 'Shortcut (e.g. win+d, ctrl+shift+esc, alt+tab):';
       if (!input.value) input.value = 'ctrl+c';
     } else if (type === 'command') {
-      label.textContent = 'Shell Command (e.g. notepad.exe, wt.exe):';
+      label.textContent = 'Command (e.g. notepad.exe, wt.exe):';
       if (!input.value) input.value = 'notepad.exe';
     } else if (type === 'media') {
-      label.textContent = 'Media Action (play_pause, vol_up, vol_down, next, prev):';
+      label.textContent = 'Media (play_pause, vol_up, vol_down, next, prev):';
       if (!input.value) input.value = 'play_pause';
     } else if (type === 'power') {
-      label.textContent = 'Power Action (lock, sleep, screen_off, restart, shutdown):';
+      label.textContent = 'Power (lock, sleep, screen_off, restart, shutdown):';
       if (!input.value) input.value = 'lock';
     } else if (type === 'system') {
-      label.textContent = 'System Action (toggle_mute):';
+      label.textContent = 'System (toggle_mute):';
       if (!input.value) input.value = 'toggle_mute';
     }
   },
@@ -223,7 +228,7 @@ const DeckManager = {
         document.getElementById('deckCardModal').classList.remove('active');
         await App.loadConfig();
         this.renderDeck();
-        App.showToast('Card saved', 'success');
+        App.showToast(I18n.t('card_saved_toast'), 'success');
       }
     } catch (e) {
       App.showToast('Error saving card', 'error');
@@ -240,7 +245,7 @@ const DeckManager = {
         document.getElementById('deckCardModal').classList.remove('active');
         await App.loadConfig();
         this.renderDeck();
-        App.showToast('Card deleted', 'info');
+        App.showToast(I18n.t('card_deleted_toast'), 'info');
       }
     } catch (e) {
       App.showToast('Error deleting card', 'error');
