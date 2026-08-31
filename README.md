@@ -1,132 +1,126 @@
-# LAN Remote
+# LAN Remote Control (Windows 10/11) 🚀
 
-> Ultra-low latency web-based remote control, screen streamer, and customizable Touch Deck for local networks.
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-0078d7.svg)](https://microsoft.com/windows)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776ab.svg)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688.svg)](https://fastapi.tiangolo.com)
+[![Direct3D 11](https://img.shields.io/badge/Direct3D%2011-Hardware%2060%20FPS-green.svg)](https://learn.microsoft.com/windows/uwp/audio-video-camera/screen-capture)
+[![WASAPI](https://img.shields.io/badge/WASAPI-Audio%20Loopback-blue.svg)](https://learn.microsoft.com/windows/win32/coreaudio/wasapi)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-LAN Remote lets you control your secondary PC or server from any phone, tablet, or laptop in your local network via a web browser (PWA) with zero client installations.
-
----
-
-## Why it's fast
-
-Most remote desktop clients (like RustDesk or TeamViewer) add overhead through cloud signaling relays, multi-layer protocol framing, and complex client render pipelines.
-
-LAN Remote bypasses all external relays:
-1. **Direct Screen Grab:** Uses `MSS` / direct Windows frame buffers.
-2. **Fast Encoder:** Hardware/OpenCV JPEG compression with adjustable quality and downscaling.
-3. **Zero-Buffering WebSockets:** Frames stream directly over local WebSockets; slow clients drop stale frames instead of buffering.
-4. **Hardware-Accelerated Canvas:** Browser decodes frames directly into GPU textures via `createImageBitmap` on an HTML5 `<canvas>`.
-5. **Instant Input Injection:** Inputs trigger Windows `user32.SendInput` directly on the host with sub-millisecond dispatch time.
-
-Typical local Wi-Fi / Ethernet round-trip latency: **10–25 ms**.
+Универсальный, сверхбыстрый веб-центр удаленного управления компьютером на базе **FastAPI**, **Direct3D 11 Hardware Screen Capture**, **WASAPI Audio Loopback** и **PWA (Progressive Web App)** для смартфонов, планшетов и браузеров по локальной сети и VPN.
 
 ---
 
-## Features
+## 🌟 Ключевые возможности
 
-### 🖥️ 1. Real-Time Remote Screen
-* **Adaptive Stream:** 15 / 30 / 60 FPS, downscaling (0.5x, 0.75x, 1.0x), and adjustable compression quality (30–95%).
-* **Virtual Trackpad Mode:** 
-  * 1-finger move: smooth relative cursor movement.
-  * 1-finger tap: left-click.
-  * 2-finger drag: vertical scroll wheel.
-  * Long-press: right-click with haptic vibration feedback.
-* **Direct Touch Mode:** Direct coordinate-to-screen mapping.
-* **On-Screen Keyboard Overlay:** Quick access to `Win`, `Ctrl`, `Alt`, `Shift`, `Esc`, `Tab`, `F1–F12`, plus a dedicated text input box for mobile dictation.
+### 🎮 1. Стриминг экрана и управление в 60 FPS
+* **Direct3D 11 GPU Capture (Windows.Graphics.Capture API)** — нулевая задержка захвата (`0.0 ms`) напрямую из видеопамяти (аналогично OBS Studio).
+* **SIMD AVX2 JPEG кодирование** — сверхбыстрое сжатие кадра за 2–4 мс через `simplejpeg`.
+* **Аппаратная фиксация разрешения (1080p Lock)** — плавная трансляция 2K и 4K мониторов без просадок FPS.
+* **Режим ожидания с 0% CPU/GPU** — кнопка паузы освобождает 100% ресурсов при ненадобности.
+* **Универсальный сенсорный геймпад** — адаптивный D-Pad, кнопки A/B/X/Y и триггеры для управления играми и медиа.
+* **Виртуальный трекпад и мышь** — поддержка мультитач, прокрутки двумя пальцами, зажатия Drag и правого клика.
 
-### 🎛️ 2. Touch Deck (Macro & Action Grid)
-* Turn your phone into an Elgato Stream Deck equivalent over LAN.
-* Grid of customizable action cards:
-  * **Shortcuts:** `Win+D`, `Ctrl+Shift+Esc`, `Alt+Tab`, `Ctrl+C`, `Ctrl+V`, etc.
-  * **Commands:** Launch terminal, open apps (`notepad.exe`, `wt.exe`), run scripts.
-  * **Media & System:** Volume up/down, mute toggle, play/pause.
-  * **Power Actions:** Lock PC, Sleep, Turn screen off.
-* Built-in library of 30+ SVG icons + support for uploading custom `.svg` files.
-* Add, edit, recolor, and delete buttons directly from the web interface.
+### 🔊 2. Системный звук ПК на телефон (Live Audio Streaming)
+* Прямой захват всего звука Windows через **WASAPI Loopback (Realtek / Speakers)** в качестве `48 000 Гц Stereo 16-bit PCM`.
+* Воспроизведение через **Web Audio API** в браузере мобильного устройства без задержек.
 
-### 📊 3. Host System Dashboard
-* Real-time metrics: CPU usage, RAM utilization, and disk partition stats.
-* Master Volume slider with live sync and mute button.
-* Media transport controls (Previous, Play/Pause, Next).
-* Power management buttons (Lock, Screen Off, Sleep, Restart, Shutdown).
-* Mini Command Runner (execute shell commands with live stdout/stderr capture).
+### 🎛️ 3. Touch Deck (Интерактивная панель макросов)
+* Кастомные плитки макросов с поддержкой Hotkeys, запуска программ, медиа-кнопок, громкости, питания и скриптов.
+* Категории: *Media, Windows, Gaming, Work, Audio Knobs*.
+* Интегрированная библиотека из **43 векторных SVG-иконок** (чистый векторный дизайн без эмодзи).
 
-### ⚙️ 4. Modular Settings with Live Search
-* **Fuzzy Search:** Instant real-time filtering across all settings (FPS, sensitivity, ports, icons).
-* Categorized sections for Stream, Input, Deck layout, and Network.
-* Displays all active LAN IP addresses with a 1-click URL copy button.
+### 📊 4. Диспетчер задач Windows 11 в браузере
+* Мониторинг всех запущенных процессов, потребления CPU, памяти и пользователей.
+* Управление процессами: Завершить (Kill), сменить приоритет (Realtime, High, Normal, Idle).
+* Запуск новых процессов (`Run Task...`).
+* **Монитор GPU:** раздельная загрузка 3D Core, Video Decode, Video Encode, VRam и температура видеокарты.
+
+### 📁 5. Файловый проводник (File Explorer)
+* Быстрый доступ ко всем дискам (`C:\`, `D:\`, `H:\` и сетевым ресурсам).
+* Загрузка и скачивание файлов, удаление, навигация в стиле проводника Windows 11.
+
+### 📋 6. Буфер обмена и уведомления
+* Живая история последних 5 записей буфера обмена с возможностью копирования в 1 клик.
+* Отправка нативных всплывающих уведомлений (Windows Toast) со смартфона на ПК.
+* Индикатор уровня заряда батареи ноутбука/ИБП (`psutil.sensors_battery`) в шапке приложения.
 
 ---
 
-## Quick Start
+## 🚀 Быстрый старт
 
-### Requirements
-* Python 3.9+ (Windows host)
-* Any modern browser on client devices (Safari iOS, Chrome Android, Firefox, Edge, etc.)
+### Вариант 1: Запуск из исходного кода (Python)
 
-### Installation & Launch
-
-```powershell
-# 1. Clone repository
-git clone https://github.com/your-username/lan-remote.git
+```bash
+# 1. Клонирование репозитория
+git clone https://github.com/manka81/lan-remote.git
 cd lan-remote
 
-# 2. Install dependencies
+# 2. Установка зависимостей
 pip install -r requirements.txt
 
-# 3. Start server
+# 3. Запуск сервера
 python server.py
 ```
 
-Or simply double-click `start.bat`.
-
-The server will display its local addresses:
+Сервер автоматически выведет доступные URL в вашей локальной сети:
 ```text
-============================================================
-  LAN Remote Control Server Ready!
-  Local URL:   http://localhost:8080
-  Network URL: http://192.168.1.150:8080
-============================================================
+LAN Remote Control Server Ready!
+Local URL:   http://localhost:8080
+Network URL: http://192.168.1.240:8080
 ```
 
-Open the `Network URL` on your phone or secondary device.
+### Вариант 2: Запуск автономного EXE бинарника
 
-> **Tip (PWA on iOS / Android):** In Safari on iPhone, tap **Share → Add to Home Screen**. In Chrome on Android, tap the menu and select **Install App** or **Add to Home screen** for a full-screen app experience.
+Скомпилируйте или запустите `LAN-Remote.exe`:
+```bash
+# Сборка единого бинарника:
+pyinstaller --noconfirm LAN-Remote.spec
+```
+Исполняемый файл появится в папке `dist/LAN-Remote.exe`. Он не требует установленного Python и запускается в один клик.
 
 ---
 
-## Project Structure
+## 📱 Использование на телефоне (PWA)
 
-```text
+1. Подключите телефон к тому же Wi-Fi роутеру или Radmin VPN.
+2. Откройте в браузере на телефоне адрес (например, `http://192.168.1.240:8080` или отсканируйте QR-код в веб-интерфейсе).
+3. Нажмите **«Добавить на главный экран»** (Add to Home Screen), чтобы запускать как нативное полноэкранное приложение без адресной строки браузера.
+
+---
+
+## 🛠️ Архитектура проекта
+
+```
 lan-remote/
 ├── core/
-│   ├── config_manager.py    # Config persistence & deck macros
-│   ├── input_driver.py      # user32.SendInput low-latency driver
-│   ├── screen_streamer.py   # MSS + OpenCV JPEG streaming pipeline
-│   ├── system_manager.py    # Metrics, audio volume, power actions
-│   └── gen_icons.py         # SVG icons generator
+│   ├── audio_streamer.py    # Захват системного звука WASAPI Loopback
+│   ├── screen_streamer.py   # Direct3D 11 & MSS 60 FPS захват экрана
+│   ├── input_driver.py      # Эмуляция мыши, трекпада и клавиатуры
+│   ├── system_manager.py    # Метрики CPU, GPU, батареи, буфера обмена
+│   ├── task_manager.py      # Диспетчер задач и управление процессами
+│   ├── file_manager.py      # Файловый проводник дисков
+│   └── config_manager.py    # Менеджер профилей и настроек
 ├── static/
-│   ├── css/
-│   │   └── style.css        # Responsive dark UI & PWA styling
+│   ├── index.html           # SPA интерфейс приложения
+│   ├── css/style.css        # Темы (OLED, Cyberpunk, Slate, Glass)
 │   ├── js/
-│   │   ├── app.js           # App controller & status polling
-│   │   ├── deck.js          # Touch Deck action cards & modal editor
-│   │   ├── settings.js      # Searchable modular settings & SVG manager
-│   │   ├── stream.js        # Canvas WebSockets, trackpad & input handler
-│   │   └── system.js        # Hardware gauges, volume & power controls
-│   ├── icons/               # 30+ clean SVG icons
-│   ├── index.html           # Single-page web client
-│   ├── manifest.json        # PWA manifest
-│   └── sw.js                # Service Worker
-├── config.json              # Auto-generated user configuration
-├── requirements.txt         # Python dependencies
-├── start.bat                # Windows 1-click launcher
-├── run.ps1                  # PowerShell launcher
-├── LICENSE                  # MIT License
-└── README.md
+│   │   ├── stream.js        # Декодер экрана и обработчик тачпада
+│   │   ├── audio.js         # Web Audio API PCM плеер
+│   │   ├── deck.js          # Touch Deck макросы
+│   │   ├── taskmgr.js       # Диспетчер задач
+│   │   ├── files.js         # Проводник файлов
+│   │   ├── system.js        # Системные действия и буфер
+│   │   └── i18n.js          # Локализация (RU, EN, DE)
+│   └── icons/               # 43 SVG векторных иконок
+├── server.py                # FastAPI & WebSocket сервер
+├── requirements.txt         # Зависимости Python
+├── LAN-Remote.spec          # PyInstaller спецификация сборки
+└── LICENSE                  # MIT License
 ```
 
 ---
 
-## License
+## 📄 Лицензия
 
-MIT License. See [LICENSE](LICENSE) for details.
+Проект распространяется под лицензией **MIT**. Подробности в файле [LICENSE](LICENSE).
