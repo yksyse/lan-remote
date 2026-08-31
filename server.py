@@ -25,6 +25,7 @@ from core.config_manager import cfg_mgr
 from core.input_driver import driver
 from core.screen_streamer import streamer
 from core.system_manager import system_mgr
+from core.audio_streamer import audio_streamer
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
@@ -60,6 +61,7 @@ async def startup_event():
         monitor_index=st_cfg.get("monitor_index", 1),
     )
     streamer.start()
+    audio_streamer.start(asyncio.get_event_loop())
 
     ips = system_mgr.get_local_ips()
     port = cfg_mgr.config.get("server", {}).get("port", 8080)
@@ -74,6 +76,7 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     streamer.stop()
+    audio_streamer.stop()
 
 
 # ----------------------------------------------------
@@ -148,6 +151,36 @@ async def websocket_stream(websocket: WebSocket):
     finally:
         recv_task.cancel()
         streamer.active_sockets.discard(websocket)
+
+
+# ----------------------------------------------------
+# WebSocket: Real-time Host PC Audio Stream (WASAPI Loopback)
+# ----------------------------------------------------
+@app.websocket("/ws/audio")
+async def websocket_audio(websocket: WebSocket):
+    await websocket.accept()
+    # Send audio header config so browser AudioContext initializes perfectly
+    await websocket.send_text(
+        json.dumps({
+            "type": "audio_config",
+            "sample_rate": audio_streamer.sample_rate or 48000,
+            "channels": audio_streamer.channels or 2,
+        })
+    )
+    audio_streamer.active_sockets.add(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            try:
+                msg = json.loads(data)
+                if msg.get("type") == "ping":
+                    await websocket.send_text(json.dumps({"type": "pong"}))
+            except Exception:
+                pass
+    except (WebSocketDisconnect, asyncio.CancelledError):
+        pass
+    finally:
+        audio_streamer.active_sockets.discard(websocket)
 
 
 # ----------------------------------------------------

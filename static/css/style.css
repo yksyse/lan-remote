@@ -640,6 +640,12 @@ canvas#streamCanvas {
   color: #fff !important;
 }
 
+.tool-btn.audio-active {
+  background-color: var(--accent-blue) !important;
+  color: #fff !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.7);
+}
+
 .tool-btn.gamepad-active {
   background-color: var(--accent-green) !important;
   color: #000 !important;
