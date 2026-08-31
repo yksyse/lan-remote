@@ -123,6 +123,7 @@ const SettingsManager = {
       this.setVal('settingStreamFps', cfg.stream.fps);
       this.setVal('settingStreamQuality', cfg.stream.quality);
       this.setVal('settingStreamScale', cfg.stream.scale);
+      this.setVal('settingStreamMaxRes', cfg.stream.max_resolution || '1080p');
       this.setVal('settingStreamMonitor', cfg.stream.monitor_index);
     }
 
@@ -178,9 +179,10 @@ const SettingsManager = {
 
     const payload = {
       stream: {
-        fps: parseInt(document.getElementById('settingStreamFps')?.value || 30, 10),
-        quality: parseInt(document.getElementById('settingStreamQuality')?.value || 65, 10),
-        scale: parseFloat(document.getElementById('settingStreamScale')?.value || 0.75),
+        fps: parseInt(document.getElementById('settingStreamFps')?.value || 60, 10),
+        quality: parseInt(document.getElementById('settingStreamQuality')?.value || 60, 10),
+        scale: parseFloat(document.getElementById('settingStreamScale')?.value || 1.0),
+        max_resolution: document.getElementById('settingStreamMaxRes')?.value || '1080p',
         monitor_index: parseInt(document.getElementById('settingStreamMonitor')?.value || 1, 10),
       },
       input: {

@@ -16,8 +16,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     },
     "stream": {
         "fps": 60,
-        "quality": 65,
-        "scale": 0.75,
+        "quality": 60,
+        "scale": 1.0,
+        "max_resolution": "1080p",
         "monitor_index": 1
     },
     "input": {

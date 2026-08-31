@@ -30,12 +30,13 @@ class CURSORINFO(ctypes.Structure):
 
 
 class ScreenStreamer:
-    """Ultra-fast 60 FPS Windows screen capture engine with zero-copy scaling and SIMD JPEG."""
+    """Ultra-fast 60 FPS Windows screen capture engine with 1080p resolution lock and SIMD JPEG."""
 
     def __init__(self):
         self.fps: int = 60
-        self.quality: int = 65
-        self.scale: float = 0.75
+        self.quality: int = 60
+        self.scale: float = 1.0
+        self.max_resolution: str = "1080p"  # "1080p", "720p", "native"
         self.monitor_index: int = 1
 
         self.running: bool = False
@@ -75,7 +76,7 @@ class ScreenStreamer:
             target=self._capture_loop, daemon=True, name="ScreenCaptureWorker"
         )
         self.capture_thread.start()
-        logger.info("High-speed 60 FPS screen capture pipeline started.")
+        logger.info("High-speed 60 FPS screen capture pipeline started (1080p locked).")
 
     def stop(self):
         self.running = False
@@ -100,6 +101,7 @@ class ScreenStreamer:
         fps: Optional[int] = None,
         quality: Optional[int] = None,
         scale: Optional[float] = None,
+        max_resolution: Optional[str] = None,
         monitor_index: Optional[int] = None,
     ):
         if fps is not None:
@@ -108,6 +110,8 @@ class ScreenStreamer:
             self.quality = max(20, min(95, quality))
         if scale is not None:
             self.scale = max(0.25, min(1.0, scale))
+        if max_resolution is not None:
+            self.max_resolution = max_resolution
         if monitor_index is not None:
             self.monitor_index = max(1, monitor_index)
 
@@ -182,22 +186,35 @@ class ScreenStreamer:
                     )
                     monitor = sct.monitors[target_mon_idx]
 
-                    self.original_width = monitor["width"]
-                    self.original_height = monitor["height"]
+                    orig_w = monitor["width"]
+                    orig_h = monitor["height"]
+                    self.original_width = orig_w
+                    self.original_height = orig_h
 
-                    # 1. Zero-copy screen grab
+                    # 1. Zero-copy screen grab from OS buffer
                     sct_img = sct.grab(monitor)
-                    img_np = np.frombuffer(sct_img.bgra, dtype=np.uint8).reshape((sct_img.height, sct_img.width, 4))
+                    img_np = np.frombuffer(sct_img.bgra, dtype=np.uint8).reshape((orig_h, orig_w, 4))
 
                     t_cap = time.perf_counter()
                     self.capture_time_ms = (t_cap - t0) * 1000.0
 
-                    # 2. Fast Scaling (creates writable target_frame in <3ms with cv2.INTER_LINEAR)
-                    if self.scale < 1.0:
-                        new_w = int(monitor["width"] * self.scale)
-                        new_h = int(monitor["height"] * self.scale)
-                        target_frame = cv2.resize(img_np, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
-                        cur_scale = self.scale
+                    # 2. Strict 1080p Resolution Lock calculation
+                    if self.max_resolution == "720p":
+                        max_w, max_h = 1280, 720
+                    elif self.max_resolution == "native":
+                        max_w, max_h = 3840, 2160
+                    else:  # default 1080p locked for ultra-smooth 60 FPS
+                        max_w, max_h = 1920, 1080
+
+                    base_scale = min(1.0, max_w / orig_w, max_h / orig_h)
+                    effective_scale = base_scale * self.scale
+
+                    if effective_scale < 1.0:
+                        new_w = int(orig_w * effective_scale)
+                        new_h = int(orig_h * effective_scale)
+                        # INTER_NEAREST takes ~0.8ms and gives crisp text at 60 FPS
+                        target_frame = cv2.resize(img_np, (new_w, new_h), interpolation=cv2.INTER_NEAREST)
+                        cur_scale = effective_scale
                     else:
                         target_frame = img_np.copy()
                         cur_scale = 1.0
@@ -225,7 +242,7 @@ class ScreenStreamer:
                             cv2.fillPoly(target_frame, [arrow_pts], (255, 255, 255, 255))
                             cv2.polylines(target_frame, [arrow_pts], isClosed=True, color=(0, 0, 0, 255), thickness=max(1, int(2 * cur_scale)))
 
-                    # 4. SIMD JPEG Encoding (<6ms)
+                    # 4. Ultra-fast SIMD direct BGRA encoding with cv2 fallback
                     t_enc_start = time.perf_counter()
                     success = False
                     encoded_bytes = None
@@ -233,7 +250,7 @@ class ScreenStreamer:
                     if simplejpeg_available:
                         try:
                             encoded_bytes = simplejpeg.encode_jpeg(
-                                target_frame,
+                                np.ascontiguousarray(target_frame),
                                 quality=self.quality,
                                 colorspace="BGRA",
                                 fastdct=True,

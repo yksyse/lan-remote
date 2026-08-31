@@ -10,7 +10,7 @@
     "fps": 90,
     "quality": 45,
     "scale": 0.75,
-    "monitor_index": 2
+    "monitor_index": 1
   },
   "input": {
     "mode": "trackpad",

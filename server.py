@@ -53,9 +53,10 @@ is_mouse_down = False
 async def startup_event():
     st_cfg = cfg_mgr.config.get("stream", {})
     streamer.update_settings(
-        fps=st_cfg.get("fps", 30),
-        quality=st_cfg.get("quality", 65),
-        scale=st_cfg.get("scale", 0.75),
+        fps=st_cfg.get("fps", 60),
+        quality=st_cfg.get("quality", 60),
+        scale=st_cfg.get("scale", 1.0),
+        max_resolution=st_cfg.get("max_resolution", "1080p"),
         monitor_index=st_cfg.get("monitor_index", 1),
     )
     streamer.start()
@@ -332,6 +333,7 @@ async def update_config(update: SectionUpdate):
             fps=update.values.get("fps"),
             quality=update.values.get("quality"),
             scale=update.values.get("scale"),
+            max_resolution=update.values.get("max_resolution"),
             monitor_index=update.values.get("monitor_index"),
         )
     return {"status": "ok", "config": cfg_mgr.get_all()}
