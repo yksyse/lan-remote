@@ -1,6 +1,7 @@
-// Modular Settings, Themes & Audio Controller
+// Modular Settings, Themes & Network QR Controller
 const SettingsManager = {
   allSettingItems: [],
+  selectedQrIp: null,
 
   init() {
     this.allSettingItems = Array.from(document.querySelectorAll('.setting-item'));
@@ -275,22 +276,23 @@ const SettingsManager = {
     const port = App.config?.server?.port || 8080;
     container.innerHTML = '';
 
-    const primaryIp = App.status.local_ips[0] || '127.0.0.1';
-    const primaryUrl = `http://${primaryIp}:${port}`;
+    const interfaces = App.status.network_interfaces || App.status.local_ips.map(ip => ({ name: 'LAN', ip: ip }));
+    const currentIp = this.selectedQrIp || (interfaces[0] ? interfaces[0].ip : '127.0.0.1');
+    const primaryUrl = `http://${currentIp}:${port}`;
 
     if (typeof window.renderQRCodeSVG === 'function') {
       const qrCard = document.createElement('div');
       qrCard.className = 'qr-connection-card';
       qrCard.innerHTML = `
         <div class="qr-code-wrapper">
-          ${window.renderQRCodeSVG(primaryUrl, 130)}
+          ${window.renderQRCodeSVG(primaryUrl, 140)}
         </div>
         <div class="qr-info-content">
           <div style="font-size:0.88rem;font-weight:700;color:var(--text-main);">${I18n.t('qr_scan_hint')}</div>
-          <div style="font-family:var(--font-mono);font-size:0.9rem;color:var(--accent-blue);word-break:break-all;">${primaryUrl}</div>
+          <div style="font-family:var(--font-mono);font-size:0.95rem;font-weight:700;color:var(--accent-blue);word-break:break-all;">${primaryUrl}</div>
           <div>
             <button class="btn-primary" style="padding:6px 14px;font-size:0.8rem;" onclick="navigator.clipboard.writeText('${primaryUrl}'); App.showToast(I18n.t('copied_toast'), 'success');">
-              ${I18n.t('copy_btn')} URL
+              <img src="/icons/copy.svg" style="width:14px;height:14px;" alt=""> ${I18n.t('copy_btn')} URL
             </button>
           </div>
         </div>
@@ -299,30 +301,48 @@ const SettingsManager = {
     }
 
     const ipListTitle = document.createElement('div');
-    ipListTitle.style.marginTop = '12px';
+    ipListTitle.style.marginTop = '14px';
     ipListTitle.style.marginBottom = '6px';
-    ipListTitle.style.fontSize = '0.8rem';
+    ipListTitle.style.fontSize = '0.82rem';
+    ipListTitle.style.fontWeight = '600';
     ipListTitle.style.color = 'var(--text-muted)';
-    ipListTitle.textContent = 'All Available Network Interfaces:';
+    ipListTitle.textContent = 'Active Network Interfaces (Click to generate QR code):';
     container.appendChild(ipListTitle);
 
-    App.status.local_ips.forEach(ip => {
-      const url = `http://${ip}:${port}`;
+    interfaces.forEach(iface => {
+      const url = `http://${iface.ip}:${port}`;
+      const isSelected = iface.ip === currentIp;
+
       const row = document.createElement('div');
       row.style.display = 'flex';
       row.style.justifyContent = 'space-between';
       row.style.alignItems = 'center';
-      row.style.background = 'var(--bg-secondary)';
+      row.style.background = isSelected ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-secondary)';
+      row.style.border = isSelected ? '1px solid var(--accent-blue)' : '1px solid var(--border)';
       row.style.padding = '8px 12px';
       row.style.borderRadius = 'var(--radius-md)';
       row.style.marginBottom = '6px';
-      row.style.fontFamily = 'var(--font-mono)';
-      row.style.fontSize = '0.82rem';
+      row.style.cursor = 'pointer';
+      row.style.transition = 'all 0.15s ease';
 
       row.innerHTML = `
-        <span>${url}</span>
-        <button class="btn-secondary" style="padding:4px 10px;font-size:0.75rem;" onclick="navigator.clipboard.writeText('${url}'); App.showToast(I18n.t('copied_toast'), 'success');">${I18n.t('copy_btn')}</button>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <span style="font-weight:700;font-size:0.8rem;color:${isSelected ? 'var(--accent-blue)' : 'var(--text-main)'};">${iface.name || 'LAN'}</span>
+          <span style="font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);">${url}</span>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-secondary" style="padding:4px 10px;font-size:0.75rem;" onclick="event.stopPropagation(); navigator.clipboard.writeText('${url}'); App.showToast(I18n.t('copied_toast'), 'success');">
+            ${I18n.t('copy_btn')}
+          </button>
+        </div>
       `;
+
+      row.addEventListener('click', () => {
+        if (window.SoundEffects) window.SoundEffects.playClick();
+        this.selectedQrIp = iface.ip;
+        this.renderNetworkInfo();
+      });
+
       container.appendChild(row);
     });
   }

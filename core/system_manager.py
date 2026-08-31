@@ -166,7 +166,6 @@ class SystemManager:
         except Exception:
             pass
 
-        # Fallback if nvidia-smi unavailable
         gpu_data["available"] = False
         return gpu_data
 
@@ -177,7 +176,6 @@ class SystemManager:
         self.cpu_history.append(round(cpu_p, 1))
         self.ram_history.append(round(mem.percent, 1))
 
-        # Check for new clipboard items
         self._check_clipboard_update()
 
         disks = []
@@ -221,6 +219,7 @@ class SystemManager:
             "hostname": platform.node(),
             "os": f"{platform.system()} {platform.release()}",
             "local_ips": self.get_local_ips(),
+            "network_interfaces": self.get_detailed_interfaces(),
             "active_window": self.get_active_window(),
             "clipboard_history": self.clipboard_history,
         }
@@ -350,7 +349,6 @@ class SystemManager:
             text = clip.get("text", "").strip()
             if text and text != self._last_clipboard_text:
                 self._last_clipboard_text = text
-                # Avoid duplicates
                 self.clipboard_history = [
                     item
                     for item in self.clipboard_history
@@ -419,16 +417,44 @@ class SystemManager:
                 pass
             return {"status": "error", "detail": str(e)}
 
-    def get_local_ips(self) -> List[str]:
-        ips = []
+    # ----------------------------------------------------
+    # Smart Network Interface Ranking (Real LAN vs Virtual VPNs)
+    # ----------------------------------------------------
+    def get_detailed_interfaces(self) -> List[Dict[str, Any]]:
+        interfaces = []
         for iface, snics in psutil.net_if_addrs().items():
             for snic in snics:
-                if (
-                    snic.family.name == "AF_INET"
-                    and not snic.address.startswith("127.")
-                ):
-                    ips.append(snic.address)
-        return ips or ["127.0.0.1"]
+                if snic.family.name != "AF_INET":
+                    continue
+                ip = snic.address
+                if ip.startswith("127.") or ip.startswith("169.254."):
+                    continue
+
+                # Categorize & rank priority
+                prio = 50
+                iface_lower = iface.lower()
+
+                if ip.startswith("192.168."):
+                    prio = 100  # Primary Home LAN / Wi-Fi
+                elif ip.startswith("10."):
+                    prio = 80  # Corporate/Office LAN
+                elif "radmin" in iface_lower or ip.startswith("26."):
+                    prio = 20  # Radmin VPN
+                elif "tun" in iface_lower or "tap" in iface_lower:
+                    prio = 10  # Virtual Tunnel
+                elif "veth" in iface_lower or "wsl" in iface_lower:
+                    prio = 15
+
+                interfaces.append(
+                    {"name": iface, "ip": ip, "priority": prio}
+                )
+
+        interfaces.sort(key=lambda x: x["priority"], reverse=True)
+        return interfaces
+
+    def get_local_ips(self) -> List[str]:
+        detailed = self.get_detailed_interfaces()
+        return [item["ip"] for item in detailed] or ["127.0.0.1"]
 
     def media_control(self, action: str):
         VK_MEDIA_NEXT_TRACK = 0xB0
