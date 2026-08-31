@@ -85,7 +85,7 @@ const StreamManager = {
       this.startPing();
     };
 
-    this.ws.onmessage = async (event) => {
+    this.ws.onmessage = (event) => {
       if (typeof event.data === 'string') {
         try {
           const msg = JSON.parse(event.data);
@@ -97,11 +97,16 @@ const StreamManager = {
         return;
       }
 
-      // Binary Blob -> ImageBitmap with Image fallback for universal device support
-      try {
-        const blob = event.data instanceof Blob ? event.data : new Blob([event.data], { type: 'image/jpeg' });
-        if (window.createImageBitmap) {
-          const bmp = await createImageBitmap(blob);
+      if (this.isPaused) return;
+
+      if (!this.canvas) this.canvas = document.getElementById('streamCanvas');
+      if (!this.ctx && this.canvas) this.ctx = this.canvas.getContext('2d', { alpha: false });
+      if (!this.ctx) return;
+
+      const blob = event.data instanceof Blob ? event.data : new Blob([event.data], { type: 'image/jpeg' });
+
+      if (window.createImageBitmap) {
+        createImageBitmap(blob).then((bmp) => {
           if (this.canvas.width !== bmp.width || this.canvas.height !== bmp.height) {
             this.canvas.width = bmp.width;
             this.canvas.height = bmp.height;
@@ -111,23 +116,12 @@ const StreamManager = {
             this.drawVirtualCursor();
           }
           bmp.close();
-        } else {
-          const url = URL.createObjectURL(blob);
-          const img = new Image();
-          img.onload = () => {
-            if (this.canvas.width !== img.width || this.canvas.height !== img.height) {
-              this.canvas.width = img.width;
-              this.canvas.height = img.height;
-            }
-            this.ctx.drawImage(img, 0, 0);
-            if (this.cursorMode === 'virtual') {
-              this.drawVirtualCursor();
-            }
-            URL.revokeObjectURL(url);
-          };
-          img.src = url;
-        }
-      } catch (err) {}
+        }).catch(() => {
+          this.renderWithImageFallback(blob);
+        });
+      } else {
+        this.renderWithImageFallback(blob);
+      }
     };
 
     this.ws.onclose = () => {
@@ -137,6 +131,30 @@ const StreamManager = {
         if (document.visibilityState === 'visible') this.connectStreamWS();
       }, 2000);
     };
+  },
+
+  renderWithImageFallback(blob) {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      if (!this.canvas) this.canvas = document.getElementById('streamCanvas');
+      if (!this.ctx && this.canvas) this.ctx = this.canvas.getContext('2d', { alpha: false });
+      if (this.ctx) {
+        if (this.canvas.width !== img.naturalWidth || this.canvas.height !== img.naturalHeight) {
+          this.canvas.width = img.naturalWidth;
+          this.canvas.height = img.naturalHeight;
+        }
+        this.ctx.drawImage(img, 0, 0);
+        if (this.cursorMode === 'virtual') {
+          this.drawVirtualCursor();
+        }
+      }
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
   },
 
   connectInputWS() {

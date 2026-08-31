@@ -168,9 +168,8 @@ class ScreenStreamer:
                     self.original_height = monitor["height"]
 
                     sct_img = sct.grab(monitor)
-                    img_np = np.frombuffer(
-                        sct_img.bgra, dtype=np.uint8
-                    ).reshape((sct_img.height, sct_img.width, 4))
+                    # Use np.array to ensure writable buffer
+                    img_np = np.array(sct_img, dtype=np.uint8)
 
                     t_cap = time.perf_counter()
                     self.capture_time_ms = (t_cap - t0) * 1000.0
@@ -206,17 +205,24 @@ class ScreenStreamer:
                     self.frame_width = target_frame.shape[1]
                     self.frame_height = target_frame.shape[0]
 
-                    # Ultra-fast SIMD direct BGRA encoding
+                    # Ultra-fast SIMD direct BGRA encoding with cv2 fallback
                     t_enc_start = time.perf_counter()
+                    success = False
+                    encoded_bytes = None
+
                     if simplejpeg_available:
-                        encoded_bytes = simplejpeg.encode_jpeg(
-                            target_frame,
-                            quality=self.quality,
-                            colorspace="BGRA",
-                            fastdct=True,
-                        )
-                        success = True
-                    else:
+                        try:
+                            encoded_bytes = simplejpeg.encode_jpeg(
+                                np.ascontiguousarray(target_frame),
+                                quality=self.quality,
+                                colorspace="BGRA",
+                                fastdct=True,
+                            )
+                            success = True
+                        except Exception:
+                            pass
+
+                    if not success:
                         bgr = cv2.cvtColor(target_frame, cv2.COLOR_BGRA2BGR)
                         cv_encode_params[1] = self.quality
                         success, buffer = cv2.imencode(".jpg", bgr, cv_encode_params)
