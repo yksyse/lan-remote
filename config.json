@@ -18,7 +18,8 @@
     "scroll_speed": 1.0,
     "invert_scroll": false,
     "long_press_ms": 450,
-    "haptic_feedback": true
+    "haptic_feedback": true,
+    "cursor_mode": "virtual"
   },
   "deck": {
     "grid_columns": 4,

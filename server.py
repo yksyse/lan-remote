@@ -30,7 +30,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("LAN-Remote")
 
-app = FastAPI(title="LAN Remote Control", version="1.1.0")
+app = FastAPI(title="LAN Remote Control", version="1.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -44,8 +44,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 ICONS_DIR = os.path.join(STATIC_DIR, "icons")
 
-# Virtual cursor state (when cursor_mode is 'virtual')
+# Virtual cursor coordinates
 virtual_cursor = {"x": 0.5, "y": 0.5, "visible": True}
+is_mouse_down = False
 
 
 @app.on_event("startup")
@@ -145,6 +146,7 @@ async def websocket_stream(websocket: WebSocket):
 # ----------------------------------------------------
 @app.websocket("/ws/input")
 async def websocket_input(websocket: WebSocket):
+    global is_mouse_down
     await websocket.accept()
     try:
         while True:
@@ -163,13 +165,13 @@ async def websocket_input(websocket: WebSocket):
                     ny = float(event["y"])
                     virtual_cursor["x"] = nx
                     virtual_cursor["y"] = ny
-                    if cursor_mode == "physical":
+                    # Move physical mouse if in physical mode OR if dragging
+                    if cursor_mode == "physical" or is_mouse_down:
                         driver.move_absolute(nx, ny)
 
                 elif etype == "move_rel":
                     dx = int(event.get("dx", 0))
                     dy = int(event.get("dy", 0))
-                    # Update virtual coordinates
                     w = streamer.original_width or 1920
                     h = streamer.original_height or 1080
                     virtual_cursor["x"] = max(
@@ -178,42 +180,64 @@ async def websocket_input(websocket: WebSocket):
                     virtual_cursor["y"] = max(
                         0.0, min(1.0, virtual_cursor["y"] + dy / h)
                     )
-                    if cursor_mode == "physical":
+                    if cursor_mode == "physical" or is_mouse_down:
                         driver.move_relative(dx, dy)
 
                 elif etype == "down":
-                    if cursor_mode == "physical":
-                        driver.mouse_down(event.get("button", "left"))
-                elif etype == "up":
-                    if cursor_mode == "physical":
-                        driver.mouse_up(event.get("button", "left"))
-                elif etype == "click":
-                    if cursor_mode == "physical":
-                        driver.mouse_click(event.get("button", "left"))
-                elif etype == "dblclick":
-                    if cursor_mode == "physical":
-                        driver.mouse_double_click(event.get("button", "left"))
-                elif etype == "wheel":
-                    if cursor_mode == "physical":
-                        driver.mouse_wheel(
-                            int(event.get("dy", 0)), int(event.get("dx", 0))
+                    btn = event.get("button", "left")
+                    if cursor_mode == "virtual":
+                        driver.move_absolute(
+                            virtual_cursor["x"], virtual_cursor["y"]
                         )
+                        time.sleep(0.01)
+                    driver.mouse_down(btn)
+                    is_mouse_down = True
+
+                elif etype == "up":
+                    btn = event.get("button", "left")
+                    driver.mouse_up(btn)
+                    is_mouse_down = False
+
+                elif etype == "click":
+                    btn = event.get("button", "left")
+                    if cursor_mode == "virtual":
+                        driver.move_absolute(
+                            virtual_cursor["x"], virtual_cursor["y"]
+                        )
+                        time.sleep(0.01)
+                    driver.mouse_click(btn)
+
+                elif etype == "dblclick":
+                    btn = event.get("button", "left")
+                    if cursor_mode == "virtual":
+                        driver.move_absolute(
+                            virtual_cursor["x"], virtual_cursor["y"]
+                        )
+                        time.sleep(0.01)
+                    driver.mouse_double_click(btn)
+
+                elif etype == "wheel":
+                    dy = int(event.get("dy", 0))
+                    dx = int(event.get("dx", 0))
+                    if cursor_mode == "virtual":
+                        driver.move_absolute(
+                            virtual_cursor["x"], virtual_cursor["y"]
+                        )
+                    driver.mouse_wheel(dy, dx)
+
                 elif etype == "key_down":
-                    if cursor_mode == "physical":
-                        driver.key_down(event.get("key", ""))
+                    driver.key_down(event.get("key", ""))
                 elif etype == "key_up":
-                    if cursor_mode == "physical":
-                        driver.key_up(event.get("key", ""))
+                    driver.key_up(event.get("key", ""))
                 elif etype == "key_press":
-                    if cursor_mode == "physical":
-                        driver.key_press(event.get("key", ""))
+                    driver.key_press(event.get("key", ""))
                 elif etype == "hotkey":
                     keys = event.get("keys", [])
-                    if isinstance(keys, list) and cursor_mode == "physical":
+                    if isinstance(keys, list):
                         driver.hotkey(keys)
                 elif etype == "type_text":
                     text = event.get("text", "")
-                    if text and cursor_mode == "physical":
+                    if text:
                         driver.type_text(text)
             except Exception as e:
                 logger.error(f"Input processing error: {e}")

@@ -22,10 +22,17 @@ const I18n = {
       fullscreen_btn: "Во весь экран",
       ping_label: "Пинг",
       monitors_label: "Экран",
+      btn_lmb: "ЛКМ",
+      btn_rmb: "ПКМ",
+      btn_drag: "Зажать (Drag)",
+      btn_drag_active: "Зажато (Drag)",
+      btn_scroll: "Скролл",
       type_text_placeholder: "Введите текст для отправки на ПК...",
       send_btn: "Отправить",
-      trackpad_hint: "Режим тачпада: 1 палец — перемещение и ЛКМ, 2 пальца — скролл, удержание — ПКМ",
+      trackpad_hint: "Тачпад: 1 палец — курсор и ЛКМ, 2 пальца — скролл, удержание — ПКМ, кнопка Drag — перетаскивание",
       right_click_toast: "Правый клик (ПКМ)",
+      drag_on_toast: "Режим перетаскивания (Drag) включен",
+      drag_off_toast: "Режим перетаскивания (Drag) выключен",
       text_sent_toast: "Текст отправлен",
       input_mode_toast: "Режим ввода: ",
       mode_trackpad: "Виртуальный тачпад",
@@ -36,6 +43,10 @@ const I18n = {
       orientation_toast: "Ориентация: ",
       orient_normal: "Стандартная",
       orient_landscape: "Альбомный поворот 90°",
+
+      // Recent Actions Log
+      recent_actions_title: "Последние действия",
+      no_recent_actions: "Пока нет действий",
 
       // Touch Deck
       deck_title: "Кнопки быстрого доступа (Touch Deck)",
@@ -128,7 +139,7 @@ const I18n = {
       setting_haptic_desc: "Вибрация телефона при кликах и удержании",
 
       setting_columns_title: "Колонки сетки Touch Deck",
-      setting_columns_desc: "Количество кнопок в одной строке на широких экранах",
+      setting_columns_desc: "Количество кнопок в одной строке на широких экранах (макс. 4)",
 
       setting_svg_lib_title: "Библиотека и загрузка SVG",
       setting_svg_lib_desc: "Просмотр встроенных иконок или загрузка собственного .svg файла",
@@ -164,10 +175,17 @@ const I18n = {
       fullscreen_btn: "Fullscreen",
       ping_label: "Ping",
       monitors_label: "Display",
+      btn_lmb: "LMB",
+      btn_rmb: "RMB",
+      btn_drag: "Hold Drag",
+      btn_drag_active: "Dragging...",
+      btn_scroll: "Scroll",
       type_text_placeholder: "Type text to send to host PC...",
       send_btn: "Send",
-      trackpad_hint: "Touchpad Mode: 1 finger move & tap, 2 fingers scroll, long press right-click",
+      trackpad_hint: "Trackpad: 1 finger move/tap, 2 fingers scroll, long press RMB, Drag button to move windows",
       right_click_toast: "Right Click",
+      drag_on_toast: "Drag Lock enabled",
+      drag_off_toast: "Drag Lock released",
       text_sent_toast: "Text sent",
       input_mode_toast: "Input Mode: ",
       mode_trackpad: "Virtual Trackpad",
@@ -178,6 +196,10 @@ const I18n = {
       orientation_toast: "Orientation: ",
       orient_normal: "Standard",
       orient_landscape: "Landscape 90°",
+
+      // Recent Actions Log
+      recent_actions_title: "Recent Actions",
+      no_recent_actions: "No actions yet",
 
       // Touch Deck
       deck_title: "Touch Deck Actions",
@@ -270,7 +292,7 @@ const I18n = {
       setting_haptic_desc: "Vibrate phone on tap clicks and long-press right-clicks",
 
       setting_columns_title: "Deck Grid Columns",
-      setting_columns_desc: "Number of action cards per row on larger screens",
+      setting_columns_desc: "Number of action cards per row on larger screens (max 4)",
 
       setting_svg_lib_title: "SVG Icons Library & Upload",
       setting_svg_lib_desc: "Browse embedded icons or upload custom .svg files",
@@ -306,10 +328,17 @@ const I18n = {
       fullscreen_btn: "Vollbild",
       ping_label: "Ping",
       monitors_label: "Bildschirm",
+      btn_lmb: "LMT",
+      btn_rmb: "RMT",
+      btn_drag: "Ziehen (Drag)",
+      btn_drag_active: "Gezogen (Drag)",
+      btn_scroll: "Scrollen",
       type_text_placeholder: "Text eingeben und an PC senden...",
       send_btn: "Senden",
-      trackpad_hint: "Touchpad-Modus: 1 Finger bewegen/tippen, 2 Finger scrollen, langes Drücken Rechtsklick",
+      trackpad_hint: "Touchpad: 1 Finger bewegen/tippen, 2 Finger scrollen, langes Drücken RMT, Drag-Taste zum Ziehen",
       right_click_toast: "Rechtsklick",
+      drag_on_toast: "Ziehmodus aktiviert",
+      drag_off_toast: "Ziehmodus beendet",
       text_sent_toast: "Text gesendet",
       input_mode_toast: "Eingabemodus: ",
       mode_trackpad: "Virtuelles Touchpad",
@@ -320,6 +349,10 @@ const I18n = {
       orientation_toast: "Ausrichtung: ",
       orient_normal: "Standard",
       orient_landscape: "Querformat 90°",
+
+      // Recent Actions Log
+      recent_actions_title: "Letzte Aktionen",
+      no_recent_actions: "Noch keine Aktionen",
 
       // Touch Deck
       deck_title: "Touch Deck Aktionen",
@@ -412,7 +445,7 @@ const I18n = {
       setting_haptic_desc: "Vibration beim Tippen und langen Drücken",
 
       setting_columns_title: "Touch Deck Spalten",
-      setting_columns_desc: "Anzahl der Schaltflächen pro Zeile auf breiten Bildschirmen",
+      setting_columns_desc: "Anzahl der Schaltflächen pro Zeile auf breiten Bildschirmen (max 4)",
 
       setting_svg_lib_title: "SVG-Symbolbibliothek & Upload",
       setting_svg_lib_desc: "Integrierte Symbole durchsuchen oder eigene .svg-Datei hochladen",

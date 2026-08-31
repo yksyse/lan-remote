@@ -35,6 +35,8 @@
   padding: 0;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Custom Sleek Dark Scrollbars */
@@ -68,12 +70,15 @@ body {
   overflow-x: hidden;
 }
 
-/* Header & Navbar */
+/* Stable Header (No Jumping / Jitter) */
 header.app-header {
-  background-color: rgba(18, 22, 32, 0.85);
-  backdrop-filter: blur(12px);
+  background-color: rgba(18, 22, 32, 0.9);
+  backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
-  padding: 8px 16px;
+  padding: 0 16px;
+  height: 52px;
+  min-height: 52px;
+  max-height: 52px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -90,6 +95,7 @@ header.app-header {
   font-weight: 700;
   font-size: 1.05rem;
   letter-spacing: -0.5px;
+  flex: 0 0 165px;
 }
 
 .brand-icon {
@@ -101,14 +107,18 @@ header.app-header {
 .status-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   font-size: 0.72rem;
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   background-color: rgba(16, 185, 129, 0.1);
   color: var(--accent-green);
   border: 1px solid rgba(16, 185, 129, 0.25);
   padding: 3px 8px;
   border-radius: var(--radius-full);
+  flex: 0 0 145px;
+  min-width: 145px;
 }
 
 .status-dot {
@@ -129,6 +139,7 @@ header.app-header {
 .lang-selector {
   display: flex;
   align-items: center;
+  flex: 0 0 115px;
 }
 
 .lang-selector select {
@@ -140,6 +151,7 @@ header.app-header {
   padding: 4px 8px;
   border-radius: var(--radius-md);
   cursor: pointer;
+  width: 100%;
 }
 
 .lang-selector select:focus {
@@ -150,25 +162,29 @@ header.app-header {
 /* Nav Tabs */
 nav.nav-tabs {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   background-color: var(--bg-primary);
-  padding: 4px;
+  padding: 3px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .tab-btn {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  padding: 6px 14px;
-  font-size: 0.85rem;
+  padding: 5px 12px;
+  font-size: 0.82rem;
   font-weight: 600;
   border-radius: var(--radius-sm);
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  flex: 0 0 85px;
+  min-width: 85px;
   transition: all 0.15s ease;
 }
 
@@ -193,6 +209,8 @@ nav.nav-tabs {
   position: relative;
   display: flex;
   align-items: center;
+  flex: 1;
+  max-width: 220px;
 }
 
 .header-search input {
@@ -202,12 +220,11 @@ nav.nav-tabs {
   padding: 6px 12px 6px 32px;
   border-radius: var(--radius-full);
   font-size: 0.82rem;
-  width: 170px;
+  width: 100%;
   transition: all 0.2s ease;
 }
 
 .header-search input:focus {
-  width: 220px;
   border-color: var(--accent-blue);
   outline: none;
   background-color: var(--bg-tertiary);
@@ -263,7 +280,7 @@ main.app-content {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   overflow: hidden;
-  min-height: 450px;
+  min-height: 460px;
   box-shadow: var(--shadow-lg);
 }
 
@@ -297,11 +314,12 @@ canvas#streamCanvas {
 
 .monitor-pill-group {
   display: flex;
+  align-items: center;
   background: rgba(18, 22, 32, 0.85);
   backdrop-filter: blur(8px);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
-  padding: 3px 5px;
+  padding: 3px 6px;
   gap: 4px;
 }
 
@@ -351,7 +369,7 @@ canvas#streamCanvas {
   left: 50%;
   transform: translateX(-50%);
   color: #fff;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 500;
   pointer-events: none;
   background: rgba(18, 22, 32, 0.85);
@@ -363,6 +381,8 @@ canvas#streamCanvas {
   opacity: 0;
   transition: opacity 0.35s ease, transform 0.35s ease;
   z-index: 25;
+  text-align: center;
+  max-width: 90%;
 }
 
 .trackpad-hint.show {
@@ -373,11 +393,11 @@ canvas#streamCanvas {
 /* Floating Toolbar for Stream */
 .stream-toolbar {
   position: absolute;
-  bottom: 16px;
+  bottom: 14px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: rgba(18, 22, 32, 0.9);
-  backdrop-filter: blur(10px);
+  background-color: rgba(18, 22, 32, 0.92);
+  backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.12);
   padding: 6px 12px;
   border-radius: var(--radius-full);
@@ -418,6 +438,12 @@ canvas#streamCanvas {
   color: #fff;
 }
 
+.tool-btn.drag-active {
+  background-color: var(--accent-yellow) !important;
+  color: #000 !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.7);
+}
+
 .tool-btn img, .tool-btn svg {
   width: 18px;
   height: 18px;
@@ -428,6 +454,41 @@ canvas#streamCanvas {
   font-size: 0.72rem;
   color: var(--text-dim);
   padding: 0 6px;
+  white-space: nowrap;
+}
+
+/* Dedicated Mobile Mouse Control Bar */
+.mobile-mouse-bar {
+  display: none;
+  gap: 6px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.mouse-action-btn {
+  flex: 1;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: 10px 4px;
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.1s ease;
+}
+
+.mouse-action-btn:active {
+  background-color: var(--accent-blue);
+  color: #fff;
+  transform: scale(0.96);
+}
+
+.mouse-action-btn.active {
+  background-color: var(--accent-yellow);
+  color: #000;
+  border-color: var(--accent-yellow);
 }
 
 /* On-Screen Keyboard Drawer */
@@ -502,8 +563,20 @@ canvas#streamCanvas {
 }
 
 /* -------------------------------------------------------------------
-   Tab 2: Touch Deck (Action Grid)
+   Tab 2: Touch Deck (Action Grid) - Strict Max 4 Tiles per Row on PC
    ------------------------------------------------------------------- */
+.deck-layout-wrapper {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.deck-main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .deck-header {
   display: flex;
   align-items: center;
@@ -534,6 +607,7 @@ canvas#streamCanvas {
   align-items: center;
   gap: 6px;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .btn-primary:hover {
@@ -554,17 +628,20 @@ canvas#streamCanvas {
   align-items: center;
   gap: 6px;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .btn-secondary:hover {
   background-color: var(--bg-tertiary);
 }
 
-/* Grid of Cards */
+/* Strict Max 4 Columns Grid on PC */
 .deck-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
+  max-width: 900px;
+  width: 100%;
 }
 
 .deck-card {
@@ -647,6 +724,62 @@ canvas#streamCanvas {
 .deck-card-edit-btn:hover {
   color: #fff;
   background: var(--accent-blue);
+}
+
+/* -------------------------------------------------------------------
+   Recent Actions Sidebar (PC: Max 5, Mobile: Max 3)
+   ------------------------------------------------------------------- */
+.recent-actions-sidebar {
+  width: 280px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.recent-actions-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+.recent-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recent-action-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  animation: fadeIn 0.2s ease;
+}
+
+.recent-action-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.recent-action-time {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
 }
 
 /* -------------------------------------------------------------------
@@ -823,7 +956,7 @@ input[type="range"].volume-slider::-webkit-slider-thumb:hover {
 }
 
 /* -------------------------------------------------------------------
-   Tab 4: Settings & Search
+   Tab 4: Settings & Search (Mobile Safe Layout)
    ------------------------------------------------------------------- */
 .settings-container {
   display: flex;
@@ -906,6 +1039,7 @@ input[type="range"].volume-slider::-webkit-slider-thumb:hover {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  flex: 1;
 }
 
 .setting-title {
@@ -945,6 +1079,7 @@ select.setting-select:focus, input.setting-input:focus {
   display: inline-block;
   width: 44px;
   height: 24px;
+  flex-shrink: 0;
 }
 
 .switch input {
@@ -1185,15 +1320,33 @@ input:checked + .slider:before {
 }
 
 /* ===================================================================
-   Mobile First & Responsive Layout Overhaul
+   Mobile Layout & Overflow Fixes
    ================================----------------------------------- */
 @media (max-width: 768px) {
   header.app-header {
-    padding: 8px 12px;
-    gap: 8px;
+    padding: 0 10px;
+    height: 48px;
+    min-height: 48px;
+    max-height: 48px;
+  }
+  .brand {
+    flex: 0 0 auto;
   }
   .brand span {
-    font-size: 0.95rem;
+    font-size: 0.92rem;
+  }
+  .status-badge {
+    flex: 0 0 auto;
+    min-width: 0;
+    padding: 2px 6px;
+    font-size: 0.68rem;
+  }
+  .lang-selector {
+    flex: 0 0 auto;
+  }
+  .lang-selector select {
+    padding: 3px 6px;
+    font-size: 0.72rem;
   }
   .header-search {
     display: none;
@@ -1209,15 +1362,17 @@ input:checked + .slider:before {
     border-left: none;
     border-right: none;
     justify-content: space-around;
-    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
     z-index: 100;
     background-color: rgba(10, 12, 16, 0.96);
     backdrop-filter: blur(16px);
   }
   .tab-btn {
+    flex: 1;
+    min-width: 0;
     flex-direction: column;
-    padding: 4px 8px;
-    font-size: 0.72rem;
+    padding: 4px 2px;
+    font-size: 0.7rem;
     gap: 2px;
   }
   main.app-content {
@@ -1225,17 +1380,20 @@ input:checked + .slider:before {
     padding-bottom: calc(75px + env(safe-area-inset-bottom));
   }
   .stream-container {
-    min-height: calc(100dvh - 145px);
+    min-height: calc(100dvh - 185px);
     border-radius: var(--radius-md);
   }
   .stream-toolbar {
-    bottom: 10px;
+    bottom: 8px;
     padding: 4px 8px;
     gap: 6px;
   }
   .tool-btn {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
+  }
+  .mobile-mouse-bar {
+    display: flex;
   }
   .keyboard-drawer {
     bottom: 56px;
@@ -1243,15 +1401,22 @@ input:checked + .slider:before {
     padding: 8px;
   }
   .kbd-key {
-    padding: 6px 8px;
-    font-size: 0.75rem;
+    padding: 6px 4px;
+    font-size: 0.72rem;
+  }
+  .deck-layout-wrapper {
+    flex-direction: column;
+  }
+  .recent-actions-sidebar {
+    width: 100%;
   }
   .deck-grid {
-    grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
+    max-width: 100%;
   }
   .deck-card {
-    padding: 10px 6px;
+    padding: 12px 6px;
     border-radius: var(--radius-md);
   }
   .deck-card-icon {
@@ -1261,13 +1426,24 @@ input:checked + .slider:before {
   .deck-card-title {
     font-size: 0.75rem;
   }
+  /* Mobile safe settings items */
+  .setting-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .setting-control {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .setting-control select, .setting-control input {
+    width: 100%;
+  }
   .qr-connection-card {
     flex-direction: column;
     align-items: center;
     text-align: center;
-  }
-  .stream-top-bar {
-    top: 8px;
-    left: 8px;
   }
 }

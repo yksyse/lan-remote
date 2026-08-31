@@ -1,8 +1,9 @@
-// Global App Controller with i18n
+// Global App Controller with Recent Actions Log & i18n
 const App = {
   activeTab: 'stream',
   config: {},
   status: {},
+  recentActions: [],
 
   init() {
     if (window.I18n) {
@@ -13,6 +14,7 @@ const App = {
     this.setupGlobalSearch();
     this.registerServiceWorker();
     this.loadConfig();
+    this.renderRecentActions();
 
     setInterval(() => {
       if (document.visibilityState === 'visible') {
@@ -52,6 +54,56 @@ const App = {
     } else if (tabId === 'settings' && window.SettingsManager) {
       window.SettingsManager.renderNetworkInfo();
     }
+  },
+
+  logAction(iconName, title) {
+    const now = new Date();
+    const timeStr = now.toTimeString().split(' ')[0];
+    this.recentActions.unshift({
+      id: Date.now(),
+      icon: iconName || 'activity',
+      title: title || 'Action',
+      time: timeStr
+    });
+
+    if (this.recentActions.length > 10) {
+      this.recentActions.pop();
+    }
+    this.renderRecentActions();
+  },
+
+  renderRecentActions() {
+    const containers = [
+      document.getElementById('recentActionsListPC'),
+      document.getElementById('recentActionsListMobile')
+    ];
+
+    const isMobile = window.innerWidth <= 768;
+    const maxItems = isMobile ? 3 : 5;
+    const items = this.recentActions.slice(0, maxItems);
+
+    containers.forEach(container => {
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (items.length === 0) {
+        container.innerHTML = `<div style="font-size:0.75rem;color:var(--text-dim);padding:8px 0;">${I18n.t('no_recent_actions')}</div>`;
+        return;
+      }
+
+      items.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'recent-action-item';
+        el.innerHTML = `
+          <div class="recent-action-left">
+            <img src="/icons/${item.icon}.svg" style="width:14px;height:14px;" onerror="this.src='/icons/activity.svg'" alt="">
+            <span>${item.title}</span>
+          </div>
+          <span class="recent-action-time">${item.time}</span>
+        `;
+        container.appendChild(el);
+      });
+    });
   },
 
   setupGlobalSearch() {
